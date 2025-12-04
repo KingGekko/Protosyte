@@ -123,10 +123,13 @@ When all services are running:
 
 ## CLI Commands
 
-The Analysis Rig provides CLI commands for quick operations without starting the dashboard:
+**📖 Complete CLI Reference**: See `docs/CLI_COMMANDS.md` for detailed documentation of all commands.
+
+### Analysis Rig CLI
 
 ```bash
 # View statistics
+export PROTOSYTE_PASSPHRASE="your_passphrase"
 ./analysis-rig/protosyte-rig --mode stats
 
 # List records
@@ -136,16 +139,35 @@ The Analysis Rig provides CLI commands for quick operations without starting the
 ./analysis-rig/protosyte-rig --mode hosts
 
 # Generate FIP
-./analysis-rig/protosyte-rig --mode fip
+./analysis-rig/protosyte-rig --mode fip --format json
 
 # Mission information
 ./analysis-rig/protosyte-rig --mode mission
 
 # AdaptixC2 status
 ./analysis-rig/protosyte-rig --mode adaptixc2
+
+# Show help
+./analysis-rig/protosyte-rig --help
 ```
 
 All commands support `--format json` for JSON output.
+
+### VM Management
+
+```bash
+# Start VM
+./scripts/rig_start.sh
+
+# Enable WAN (for retrieval)
+./scripts/vm-manage.sh enable-wan
+
+# Disable WAN (isolate VM)
+./scripts/vm-manage.sh disable-wan
+
+# Revert to baseline
+./scripts/rig_destroy.sh
+```
 
 ## Log Files
 
