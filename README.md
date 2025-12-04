@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/Protosyte%20Logo.png" alt="Protosyte Logo" width="300"/>
+  <img src="assets/protosyte-logo.png" alt="Protosyte Logo" width="300"/>
 </div>
 
 # Protosyte Framework
