@@ -25,9 +25,27 @@ mod ebpf_impl {
         /// Create a new eBPF hook manager
         pub fn new() -> Result<Self, String> {
             // Load the eBPF program
-            // The eBPF bytecode is compiled at build time
+            // The eBPF bytecode is compiled at build time by build.rs
+            use std::env;
+            
+            // Try multiple locations for eBPF bytecode
+            let ebpf_bytes = std::fs::read("target/bpf/protosyte_hook.bpf.o")
+                .or_else(|_| {
+                    // Fallback to OUT_DIR (where build.rs puts it)
+                    let out_dir = env::var("OUT_DIR")
+                        .unwrap_or_else(|_| "target/debug/build".to_string());
+                    std::fs::read(format!("{}/protosyte_hook.bpf.o", out_dir))
+                })
+                .map_err(|_| {
+                    "eBPF bytecode not found. Ensure:\n".to_string() +
+                    "  1. Build with --features ebpf\n" +
+                    "  2. clang and libbpf-dev are installed\n" +
+                    "  3. Check build output for eBPF compilation errors\n" +
+                    "  4. Run 'make check-ebpf' to verify dependencies"
+                })?;
+            
             let mut bpf = BpfLoader::new()
-                .load(include_bytes!("../target/bpf/protosyte_hook.bpf.o"))
+                .load(&ebpf_bytes)
                 .map_err(|e| format!("Failed to load eBPF program: {}", e))?;
 
             // Get the ring buffer map
