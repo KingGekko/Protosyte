@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="assets/Protosyte%20Logo.png" alt="Protosyte Logo" width="300"/>
+</div>
+
 # Protosyte Framework
 ## Version 2.1 - "Virtualized Observer"
 
