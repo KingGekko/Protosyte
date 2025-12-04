@@ -283,11 +283,8 @@ mod tests {
         let manager = HookManager::new();
         let (tx, mut rx) = mpsc::unbounded_channel();
         
-        // Start capture in background
-        let manager_clone = HookManager {
-            filters: manager.filters.clone(),
-            active: manager.active.clone(),
-        };
+        // Start capture in background (HookManager now implements Clone)
+        let manager_clone = manager.clone();
         let handle = tokio::spawn(async move {
             manager_clone.start_capture(tx).await;
         });
