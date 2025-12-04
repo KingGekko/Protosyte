@@ -229,26 +229,48 @@ mod ai_impl {
         }
 
         fn embedded_model() -> Vec<u8> {
-            // Option 1: Embed model at compile time (recommended for single binary)
-            // If model exists at build time, it will be automatically embedded
-            // Place your trained ONNX model at: protosyte-seed/models/ner_model.onnx
+            // Model embedding supports THREE methods (checked in priority order):
+            //
+            // 1. COMPILE-TIME EMBEDDING (Before Runtime)
+            //    - Place model at: protosyte-seed/models/ner_model.onnx
+            //    - Build with: PROTOSYTE_EMBED_MODEL=1 cargo build --features ai-filtering
+            //    - build.rs detects model and sets 'embed_model' cfg flag
+            //    - include_bytes! embeds model into binary at compile time
+            //    - Result: Model is part of binary, no file needed at runtime
+            //
+            // 2. RUNTIME FILE DETECTION
+            //    - Checks common paths where model might be placed
+            //    - Allows using model without recompiling
+            //
+            // 3. EMPTY (triggers error with helpful instructions)
             
-            // Check if model was embedded at build time via build.rs
-            // build.rs will set this if PROTOSYTE_EMBED_MODEL is set or model exists
-            if let Ok(model_bytes) = std::fs::read("models/ner_model.onnx") {
-                return model_bytes;
-            }
-            
-            // Try embedded bytes (if compiled with include_bytes!)
-            // This is set by build.rs if model exists during build
-            #[cfg(feature = "embed-model")]
+            // Option 1: Compile-time embedded model
+            // This cfg is set by build.rs when PROTOSYTE_EMBED_MODEL=1 and model exists
+            #[cfg(embed_model)]
             {
-                // Model embedded at compile time - uncomment when you have a model
-                // include_bytes!("../models/ner_model.onnx").to_vec()
+                // Model is embedded at compile time using include_bytes!
+                // This only compiles if build.rs found the model and set embed_model cfg
+                return include_bytes!("../models/ner_model.onnx").to_vec();
             }
             
-            // Return empty if no model available
-            // User must provide model via file path or embed during build
+            // Option 2: Runtime file detection (fallback)
+            // Try common locations where users might place the model
+            let runtime_paths = vec![
+                "models/ner_model.onnx",                      // Current directory
+                "../models/ner_model.onnx",                   // Parent directory
+                "./ner_model.onnx",                           // Same directory as binary
+                "protosyte-seed/models/ner_model.onnx",      // From project root
+            ];
+            
+            for path in runtime_paths {
+                if let Ok(bytes) = std::fs::read(path) {
+                    // Found model at runtime
+                    return bytes;
+                }
+            }
+            
+            // Option 3: No model found
+            // Return empty - will trigger helpful error in new()
             vec![]
         }
     }
