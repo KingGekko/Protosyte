@@ -20,14 +20,33 @@ mod ai_impl {
 
     impl AIDataFilter {
         /// Create a new AI filter with ONNX model
+        /// 
+        /// # Arguments
+        /// * `model_path` - Optional path to ONNX model file. If None, tries to load embedded model.
+        /// 
+        /// # Model Loading Priority
+        /// 1. If `model_path` provided: Load from file
+        /// 2. If embedded model available: Use embedded model
+        /// 3. Otherwise: Returns error (model required)
         pub fn new(model_path: Option<&str>) -> Result<Self, String> {
-            // Load ONNX model (default embedded model or from file)
+            // Load ONNX model
             let model_bytes = if let Some(path) = model_path {
+                // Option 1: Load from provided file path
                 fs::read(path)
-                    .map_err(|e| format!("Failed to read model file: {}", e))?
+                    .map_err(|e| format!("Failed to read model file '{}': {}", path, e))?
             } else {
-                // Use embedded minimal model (to be generated)
-                Self::embedded_model()
+                // Option 2: Try to load embedded model
+                let embedded = Self::embedded_model();
+                if embedded.is_empty() {
+                    return Err(
+                        "No model provided. Either:\n".to_string() +
+                        "  1. Provide model path: AIDataFilter::new(Some(\"path/to/model.onnx\"))\n" +
+                        "  2. Embed model at build time: Place model at protosyte-seed/models/ner_model.onnx\n" +
+                        "     Then build with: PROTOSYTE_EMBED_MODEL=1 cargo build --features ai-filtering\n" +
+                        "  3. See docs/AI_FILTERING.md and protosyte-seed/models/README.md for details"
+                    );
+                }
+                embedded
             };
 
             // Create ONNX session
@@ -210,16 +229,26 @@ mod ai_impl {
         }
 
         fn embedded_model() -> Vec<u8> {
-            // To embed a model in the binary:
-            // 1. Train your NER model (BERT/RoBERTa) and export to ONNX
-            // 2. Quantize to int8 for size reduction
-            // 3. Place model at protosyte-seed/models/ner_model.onnx
-            // 4. Uncomment the line below to embed it:
+            // Option 1: Embed model at compile time (recommended for single binary)
+            // If model exists at build time, it will be automatically embedded
+            // Place your trained ONNX model at: protosyte-seed/models/ner_model.onnx
             
-            // include_bytes!("../models/ner_model.onnx").to_vec()
+            // Check if model was embedded at build time via build.rs
+            // build.rs will set this if PROTOSYTE_EMBED_MODEL is set or model exists
+            if let Ok(model_bytes) = std::fs::read("models/ner_model.onnx") {
+                return model_bytes;
+            }
             
-            // For now, return empty - users must provide model via file path
-            // See docs/AI_FILTERING.md for model training instructions
+            // Try embedded bytes (if compiled with include_bytes!)
+            // This is set by build.rs if model exists during build
+            #[cfg(feature = "embed-model")]
+            {
+                // Model embedded at compile time - uncomment when you have a model
+                // include_bytes!("../models/ner_model.onnx").to_vec()
+            }
+            
+            // Return empty if no model available
+            // User must provide model via file path or embed during build
             vec![]
         }
     }

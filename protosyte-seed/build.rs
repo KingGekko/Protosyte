@@ -11,11 +11,56 @@ fn main() {
         build_ebpf();
     }
     
+    // Check for ONNX model to embed (if AI filtering is enabled)
+    if env::var("CARGO_FEATURE_AI_FILTERING").is_ok() {
+        check_and_embed_model();
+    }
+    
     // Existing prost build
     prost_build::Config::new()
         .out_dir("src/proto")
         .compile_protos(&["../proto/protosyte.proto"], &["../proto/"])
         .unwrap();
+}
+
+fn check_and_embed_model() {
+    use std::path::Path;
+    
+    // Check for model in multiple locations
+    let model_paths = vec![
+        "models/ner_model.onnx",
+        "../models/ner_model.onnx",
+        "protosyte-seed/models/ner_model.onnx",
+    ];
+    
+    let model_found = model_paths.iter()
+        .find(|path| Path::new(path).exists());
+    
+    if let Some(model_path) = model_found {
+        // Check if user wants to embed (via environment variable)
+        let should_embed = env::var("PROTOSYTE_EMBED_MODEL")
+            .unwrap_or_else(|_| "auto".to_string());
+        
+        if should_embed == "auto" || should_embed == "1" || should_embed == "true" {
+            println!("cargo:warning=Found ONNX model at: {}", model_path);
+            println!("cargo:warning=To embed it, set PROTOSYTE_EMBED_MODEL=1 and rebuild");
+            println!("cargo:warning=Or use: PROTOSYTE_EMBED_MODEL=1 cargo build --features ai-filtering");
+            
+            // Create a flag file that the Rust code can check
+            let out_dir = env::var("OUT_DIR").unwrap();
+            let flag_file = format!("{}/model_embedded.flag", out_dir);
+            if should_embed != "auto" {
+                std::fs::write(&flag_file, model_path).ok();
+                println!("cargo:rustc-cfg=embed_model");
+                println!("cargo:warning=Model will be embedded in binary");
+            }
+        }
+    } else {
+        // No model found - this is OK, user can provide at runtime
+        println!("cargo:warning=No ONNX model found. AI filtering will require runtime model path.");
+        println!("cargo:warning=Place model at: models/ner_model.onnx");
+        println!("cargo:warning=Or provide model path: AIDataFilter::new(Some(\"path/to/model.onnx\"))");
+    }
 }
 
 fn build_ebpf() {
