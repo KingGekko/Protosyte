@@ -537,7 +537,7 @@ export LE_PORTAL_KEY="your_key"
 - Polymorphic Code Generation
 - Metamorphic Engine
 
-**Detailed Documentation**: See `ADVANCED_EVASION_2025.md`
+**Detailed Documentation**: See component READMEs and `docs/ADVANCED_PATTERNS.md`
 
 ### Platform-Specific Techniques
 
@@ -545,7 +545,7 @@ export LE_PORTAL_KEY="your_key"
 **Windows**: DLL injection, process hollowing, Windows services, registry  
 **macOS**: DYLD_INSERT_LIBRARIES, LaunchAgents, SIP bypass
 
-**Detailed Documentation**: See `OFFENSIVE_TECHNIQUES.md`
+**Detailed Documentation**: See component-specific READMEs for platform techniques
 
 ---
 
@@ -627,8 +627,6 @@ export LE_PORTAL_KEY="your_key"
 - **`legal-bridge/README.md`**: Legal Bridge details
 - **`protosyte-adaptixc2/README.md`**: AdaptixC2 integration details
 - **`protosyte-ai/README.md`**: AI integration details
-
-### Advanced Reference Documentation
 
 - **`ADVANCED_EVASION_2025.md`**: Detailed evasion techniques
 - **`OFFENSIVE_TECHNIQUES.md`**: Platform-specific offensive techniques
@@ -781,10 +779,9 @@ This framework is provided for **authorized security research and penetration te
 ## Support
 
 For detailed information:
+- **Advanced techniques**: See `docs/ADVANCED_PATTERNS.md`
+- **Operational workflows**: See `docs/OPERATIONAL_WORKFLOW.md`
 - **Component-specific details**: See component README files
-- **Techniques**: See `ADVANCED_EVASION_2025.md` and `OFFENSIVE_TECHNIQUES.md`
-- **Example scenarios**: See `HYPOTHETICAL_CAMPAIGN_EXAMPLE.md`
-- **Vulnerability research**: See `APACHE_VULNERABILITY_ANALYSIS.md`
 
 ---
 
