@@ -1,5 +1,7 @@
 // Library entry point for shared library builds
 pub mod hook;
+#[cfg(target_os = "linux")]
+pub mod hook_lib; // LD_PRELOAD hook library (separate cdylib)
 pub mod exfil;
 pub mod crypto;
 pub mod buffer;

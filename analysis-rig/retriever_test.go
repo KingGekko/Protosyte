@@ -18,7 +18,10 @@ func TestRetrieverInitialization(t *testing.T) {
 		return
 	}
 
-	retriever := NewRetriever(token)
+	retriever, err := NewRetriever("", "test_passphrase")
+	if err != nil {
+		t.Fatalf("NewRetriever failed: %v", err)
+	}
 	if retriever == nil {
 		t.Fatal("NewRetriever returned nil")
 	}
@@ -41,7 +44,10 @@ func TestRetrieverStorePath(t *testing.T) {
 		t.Skip("Skipping - no TEST_BOT_TOKEN set")
 	}
 
-	retriever := NewRetriever(token)
+	retriever, err := NewRetriever("", "test_passphrase")
+	if err != nil {
+		t.Fatalf("NewRetriever failed: %v", err)
+	}
 
 	// Check if store directory exists
 	if _, err := os.Stat(retriever.store); os.IsNotExist(err) {

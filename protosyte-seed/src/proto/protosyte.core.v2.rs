@@ -41,7 +41,7 @@ pub struct Heartbeat {
     pub active_hooks: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// Primary data container
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DataBlob {
     /// SHA256 of static host markers
     #[prost(bytes = "vec", tag = "1")]
@@ -109,7 +109,7 @@ pub mod data_blob {
         }
     }
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Error {
     #[prost(enumeration = "error::Severity", tag = "1")]
     pub severity: i32,

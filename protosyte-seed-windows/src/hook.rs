@@ -52,6 +52,9 @@ impl HookManager {
     }
     
     pub async fn start_capture(&self, tx: mpsc::UnboundedSender<Vec<u8>>) {
+        // Install inline hooks on Windows API functions
+        self.install_api_hooks().await;
+        
         // Windows shared memory buffer
         let buffer_name = "Local\\ProtosyteBuffer";
         
@@ -78,6 +81,63 @@ impl HookManager {
                 CloseHandle(h_map);
             }
         }
+    }
+    
+    async fn install_api_hooks(&self) {
+        use std::ffi::CString;
+        use winapi::um::libloaderapi::{GetModuleHandleA, GetProcAddress};
+        use crate::hook_inline::InlineHook;
+        
+        unsafe {
+            // Get kernel32.dll handle
+            let kernel32 = CString::new("kernel32.dll").unwrap();
+            let h_kernel32 = GetModuleHandleA(kernel32.as_ptr());
+            if h_kernel32.is_null() {
+                return;
+            }
+            
+            // Get WriteFile address
+            let write_file_str = CString::new("WriteFile").unwrap();
+            let write_file_addr = GetProcAddress(h_kernel32, write_file_str.as_ptr());
+            
+            if !write_file_addr.is_null() {
+                // Install hook on WriteFile
+                // Hook function will capture data before calling original
+                let _hook = InlineHook::new(
+                    write_file_addr as *mut u8,
+                    Self::hook_writefile as extern "C" fn() -> i32
+                );
+            }
+            
+            // Get ws2_32.dll handle for WSASend
+            let ws2_32 = CString::new("ws2_32.dll").unwrap();
+            let h_ws2_32 = GetModuleHandleA(ws2_32.as_ptr());
+            if !h_ws2_32.is_null() {
+                let wsasend_str = CString::new("WSASend").unwrap();
+                let wsasend_addr = GetProcAddress(h_ws2_32, wsasend_str.as_ptr());
+                
+                if !wsasend_addr.is_null() {
+                    let _hook = InlineHook::new(
+                        wsasend_addr as *mut u8,
+                        Self::hook_wsasend as extern "C" fn() -> i32
+                    );
+                }
+            }
+        }
+    }
+    
+    // Hook handler for WriteFile
+    extern "C" fn hook_writefile() -> i32 {
+        // This will be called before WriteFile executes
+        // Capture data from stack/registers
+        // Implementation would extract buffer pointer and size from function arguments
+        0
+    }
+    
+    // Hook handler for WSASend
+    extern "C" fn hook_wsasend() -> i32 {
+        // Capture network data before WSASend
+        0
     }
     
     async fn monitor_shared_memory(&self, tx: mpsc::UnboundedSender<Vec<u8>>, h_map: HANDLE) {

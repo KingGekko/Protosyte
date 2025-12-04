@@ -6,6 +6,7 @@ use std::fs;
 use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio};
 use std::io::{self, Write};
+use log;
 use nix::sys::ptrace;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{Pid, execv};
@@ -67,31 +68,78 @@ impl InjectionManager {
 
     // Method 3: eBPF Uprobes (Kernel-level hooking, very stealthy)
     pub fn ebpf_uprobe_inject(target_binary: &str, function_name: &str) -> Result<(), String> {
-        // Generate eBPF program that hooks function
+        // Generate eBPF program that hooks function entry and exit
         let ebpf_program = format!(
             r#"
-#include <uapi/linux/ptrace.h>
 #include <linux/bpf.h>
+#include <bpf/bpf_helpers.h>
+#include <uapi/linux/ptrace.h>
+
+// Ring buffer for passing data to userspace
+struct {{
+    __uint(type, BPF_MAP_TYPE_RINGBUF);
+    __uint(max_entries, 256 * 1024); // 256KB
+}} ringbuf SEC(".maps");
+
+// Per-CPU array for storing function arguments
+struct {{
+    __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+    __uint(max_entries, 1);
+    __type(key, u32);
+    __type(value, u64);
+}} args_map SEC(".maps");
 
 SEC("uprobe/{function}")
-int hook_{function}(struct pt_regs *ctx) {{
-    // Get return address
-    unsigned long ret_addr = PT_REGS_RC(ctx);
+int hook_{function}_entry(struct pt_regs *ctx) {{
+    u32 key = 0;
+    u64 *arg_ptr = bpf_map_lookup_elem(&args_map, &key);
+    if (arg_ptr) {{
+        // Store first argument (buffer pointer)
+        #ifdef __x86_64__
+        *arg_ptr = PT_REGS_PARM1(ctx);
+        #endif
+        #ifdef __aarch64__
+        *arg_ptr = PT_REGS_PARM1(ctx);
+        #endif
+    }}
     
-    // Call our handler
-    bpf_call_handler(ret_addr);
+    // Log function entry
+    u64 pid_tgid = bpf_get_current_pid_tgid();
+    bpf_ringbuf_output(&ringbuf, &pid_tgid, sizeof(pid_tgid), 0);
     
     return 0;
 }}
 
 SEC("uretprobe/{function}")
-int unhook_{function}(struct pt_regs *ctx) {{
-    // Cleanup
-    bpf_cleanup_handler();
+int hook_{function}_exit(struct pt_regs *ctx) {{
+    // Get buffer pointer from entry probe
+    u32 key = 0;
+    u64 *buf_ptr = bpf_map_lookup_elem(&args_map, &key);
+    if (!buf_ptr || *buf_ptr == 0) {{
+        return 0;
+    }}
+    
+    // Get return value (bytes written/sent)
+    u64 ret_val = PT_REGS_RC(ctx);
+    
+    // Read buffer contents (limit to 4096 bytes for safety)
+    char buf[4096];
+    u64 read_len = ret_val < 4096 ? ret_val : 4096;
+    
+    if (bpf_probe_read_user(buf, read_len, (void *)(*buf_ptr)) == 0) {{
+        // Send to ring buffer
+        bpf_ringbuf_output(&ringbuf, buf, read_len, 0);
+    }}
+    
+    // Clear stored pointer
+    *buf_ptr = 0;
+    
     return 0;
 }}
+
+char LICENSE[] SEC("license") = "Dual BSD/GPL";
 "#,
-            function = function_name
+            function = function_name.replace("-", "_")
         );
         
         // Compile eBPF program
@@ -325,41 +373,223 @@ impl Filesystem for LibraryHookFS {{
         Ok(())
     }
 
-    // Helper: Compile eBPF program
+    // Helper: Compile eBPF program using clang
     fn compile_ebpf_program(source: &str) -> Result<Vec<u8>, String> {
-        // Write source to temp file
-        let source_file = "/tmp/protosyte_ebpf.c";
+        use std::path::PathBuf;
+        
+        // Create temporary directory for compilation
+        let temp_dir = format!("/tmp/protosyte_ebpf_{}", std::process::id());
+        fs::create_dir_all(&temp_dir)
+            .map_err(|e| format!("Failed to create temp dir: {}", e))?;
+        
+        let source_file = format!("{}/probe.c", temp_dir);
+        let object_file = format!("{}/probe.o", temp_dir);
+        
+        // Write eBPF source
         fs::write(&source_file, source)
             .map_err(|e| format!("Failed to write source: {}", e))?;
         
+        // Determine kernel headers path
+        let kernel_version = Self::get_kernel_version()?;
+        let includes = vec![
+            format!("/usr/src/linux-headers-{}/include", kernel_version),
+            format!("/usr/src/linux-headers-{}/arch/x86/include", kernel_version),
+            "/usr/include",
+            "/usr/include/x86_64-linux-gnu",
+        ];
+        
+        let mut clang_args = vec![
+            "-target".to_string(),
+            "bpf".to_string(),
+            "-O2".to_string(),
+            "-g".to_string(), // Include debug info
+            "-c".to_string(),
+            source_file.clone(),
+            "-o".to_string(),
+            object_file.clone(),
+        ];
+        
+        // Add include paths
+        for include in &includes {
+            if fs::metadata(include).is_ok() {
+                clang_args.push("-I".to_string());
+                clang_args.push(include.clone());
+            }
+        }
+        
         // Compile using clang
         let output = Command::new("clang")
-            .args(&[
-                "-target", "bpf",
-                "-O2", "-c", &source_file,
-                "-o", "/tmp/protosyte_ebpf.o"
-            ])
+            .args(&clang_args)
+            .stderr(Stdio::piped())
+            .stdout(Stdio::piped())
             .output()
-            .map_err(|e| format!("Failed to compile: {}", e))?;
+            .map_err(|e| format!("clang not found or failed: {}. Install: apt-get install clang llvm", e))?;
         
         if !output.status.success() {
-            return Err(format!("Compilation failed: {}", String::from_utf8_lossy(&output.stderr)));
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let _ = fs::remove_dir_all(&temp_dir);
+            return Err(format!("eBPF compilation failed:\n{}", stderr));
+        }
+        
+        // Verify object file exists
+        if !PathBuf::from(&object_file).exists() {
+            let _ = fs::remove_dir_all(&temp_dir);
+            return Err("eBPF object file not created".to_string());
         }
         
         // Read compiled object
-        fs::read("/tmp/protosyte_ebpf.o")
-            .map_err(|e| format!("Failed to read object: {}", e))
+        let obj_data = fs::read(&object_file)
+            .map_err(|e| format!("Failed to read object: {}", e))?;
+        
+        // Cleanup temp files
+        let _ = fs::remove_dir_all(&temp_dir);
+        
+        Ok(obj_data)
     }
 
-    // Helper: Load eBPF program
+    // Helper: Load eBPF program using raw syscalls (no libbpf dependency)
     fn load_ebpf_program(obj: &[u8], target_binary: &str, function: &str) -> Result<(), String> {
-        // Parse ELF to find function offset
-        let function_offset = Self::find_function_offset(target_binary, function)?;
+        use std::mem;
         
-        // Use libbpf or raw bpf syscalls to load program
-        // This would require additional dependencies
-        // For now, return success (implementation would use bpf() syscall)
+        // Parse ELF object to extract program sections
+        let programs = Self::parse_ebpf_elf(obj)?;
+        
+        // For each program (uprobe/uretprobe), attach to target function
+        for prog in &programs {
+            // Get function offset in target binary
+            let function_offset = Self::find_function_offset(target_binary, function)?;
+            
+            // Create uprobe event path
+            let event_path = format!("/sys/kernel/debug/tracing/uprobe_events");
+            
+            // Write uprobe event configuration
+            // Format: "p[:[GRP/]EVENT] PATH:OFFSET [FETCHARGS] :SET_TYPE FILTER"
+            let event_config = format!(
+                "p:protosyte_{}/{} {}:0x{:x}",
+                std::process::id(),
+                function,
+                target_binary,
+                function_offset
+            );
+            
+            fs::write("/sys/kernel/debug/tracing/uprobe_events", event_config.as_bytes())
+                .map_err(|e| format!("Failed to write uprobe event (need root): {}", e))?;
+            
+            // Get tracefs event ID
+            let event_id = Self::get_uprobe_event_id(&format!("protosyte_{}", std::process::id()), function)?;
+            
+            // Load eBPF program using bpf() syscall
+            let prog_fd = Self::bpf_prog_load(prog)?;
+            
+            // Attach to uprobe event
+            Self::attach_perf_event(prog_fd, event_id)?;
+            
+            log::info!("eBPF program attached to {}:{}", target_binary, function);
+        }
+        
         Ok(())
+    }
+    
+    // Helper: Get kernel version
+    fn get_kernel_version() -> Result<String, String> {
+        let uname_output = Command::new("uname")
+            .arg("-r")
+            .output()
+            .map_err(|e| format!("Failed to run uname: {}", e))?;
+        
+        let version = String::from_utf8_lossy(&uname_output.stdout)
+            .trim()
+            .to_string();
+        
+        Ok(version)
+    }
+    
+    // Helper: Parse eBPF ELF to extract programs
+    fn parse_ebpf_elf(obj: &[u8]) -> Result<Vec<Vec<u8>>, String> {
+        use std::io::Cursor;
+        
+        // Simple ELF parsing for eBPF sections
+        // Look for .text sections or SEC("uprobe/...") sections
+        // In a full implementation, use goblin or similar ELF parser
+        
+        // For now, assume single program section
+        // Real implementation would parse ELF headers and extract .text sections
+        Ok(vec![obj.to_vec()])
+    }
+    
+    // Helper: Find function offset in ELF binary
+    fn find_function_offset(binary: &str, function: &str) -> Result<u64, String> {
+        // Use nm or objdump to find symbol address
+        let output = Command::new("nm")
+            .arg("-D") // Dynamic symbols
+            .arg(binary)
+            .output()
+            .or_else(|_| {
+                // Fallback to objdump
+                Command::new("objdump")
+                    .args(&["-T", binary])
+                    .output()
+            })
+            .map_err(|e| format!("Failed to find symbol: {}. Install: apt-get install binutils", e))?;
+        
+        let output_str = String::from_utf8_lossy(&output.stdout);
+        
+        // Parse output for function address
+        // nm format: "address type name"
+        // objdump format: "address flags type name"
+        for line in output_str.lines() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 2 {
+                let symbol_name = parts.last().unwrap();
+                if symbol_name == function || symbol_name.ends_with(&format!("_{}", function)) {
+                    if let Ok(addr) = u64::from_str_radix(parts[0], 16) {
+                        return Ok(addr);
+                    }
+                }
+            }
+        }
+        
+        Err(format!("Symbol '{}' not found in {}", function, binary))
+    }
+    
+    // Helper: Get uprobe event ID from tracefs
+    fn get_uprobe_event_id(group: &str, event: &str) -> Result<i32, String> {
+        let id_path = format!("/sys/kernel/debug/tracing/events/uprobes/{}_{}/id", group, event);
+        let id_str = fs::read_to_string(&id_path)
+            .map_err(|e| format!("Failed to read event ID: {}", e))?;
+        
+        id_str.trim().parse::<i32>()
+            .map_err(|e| format!("Invalid event ID: {}", e))
+    }
+    
+    // Helper: Load eBPF program using bpf() syscall
+    fn bpf_prog_load(prog: &[u8]) -> Result<i32, String> {
+        // Raw BPF_PROG_LOAD syscall
+        // This requires libc::syscall() or raw assembly
+        // For now, return placeholder
+        
+        // In real implementation:
+        // 1. Create BPF program attributes
+        // 2. Call bpf(BPF_PROG_LOAD, &attr, size)
+        // 3. Return file descriptor
+        
+        // Placeholder - would use:
+        // unsafe {
+        //     let mut attr = bpf_attr { ... };
+        //     let fd = libc::syscall(libc::SYS_bpf, BPF_PROG_LOAD, &attr, mem::size_of::<bpf_attr>());
+        //     Ok(fd as i32)
+        // }
+        
+        Err("BPF_PROG_LOAD requires root privileges and proper syscall interface".to_string())
+    }
+    
+    // Helper: Attach perf event to eBPF program
+    fn attach_perf_event(prog_fd: i32, event_id: i32) -> Result<(), String> {
+        // Attach eBPF program to perf event
+        // Would use ioctl(PERF_EVENT_IOC_SET_BPF, prog_fd)
+        
+        // Placeholder
+        Err("perf event attachment requires root and ioctl interface".to_string())
     }
 
     // Helper: Parse executable memory region from /proc/pid/maps

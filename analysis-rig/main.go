@@ -113,14 +113,27 @@ Examples:
 }
 
 func retrieveMode(tokenEnv string) {
-	log.Println("[RIG] Starting retrieval mode")
+	log.Println("[RIG] Starting retrieval mode (queue-based)")
 
-	token := os.Getenv(tokenEnv)
-	if token == "" {
-		log.Fatalf("[RIG] Environment variable %s not set", tokenEnv)
+	// Get passphrase for queue decryption
+	passphrase := os.Getenv("PROTOSYTE_PASSPHRASE")
+	if passphrase == "" {
+		log.Fatal("[RIG] PROTOSYTE_PASSPHRASE not set (required for queue decryption)")
 	}
 
-	retriever := NewRetriever(token)
+	// Queue database path (shared with Broadcast Engine)
+	queuePath := "../broadcast-engine/broadcast_queue.db"
+	if customPath := os.Getenv("PROTOSYTE_QUEUE_PATH"); customPath != "" {
+		queuePath = customPath
+	}
+	queuePath, _ = filepath.Abs(queuePath)
+
+	retriever, err := NewRetriever(queuePath, passphrase)
+	if err != nil {
+		log.Fatalf("[RIG] Failed to create retriever: %v", err)
+	}
+	defer retriever.queue.db.Close()
+
 	if err := retriever.Retrieve(); err != nil {
 		log.Fatalf("[RIG] Retrieval failed: %v", err)
 	}

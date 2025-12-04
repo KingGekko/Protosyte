@@ -44,6 +44,7 @@ async fn init_seed() {
 }
 
 mod hook;
+mod hook_inline;
 mod exfil;
 mod crypto;
 mod buffer;
