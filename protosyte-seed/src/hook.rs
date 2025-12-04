@@ -43,9 +43,29 @@ impl HookManager {
             });
         }
         
+        // Try to initialize AI filter (optional - gracefully degrades if no model)
+        #[cfg(feature = "ai-filtering")]
+        let ai_filter = match crate::ai_filtering::AIDataFilter::new(None) {
+            Ok(filter) => {
+                // AI model available and loaded successfully
+                Some(filter)
+            }
+            Err(_) => {
+                // No AI model available - this is OK, will use regex filtering
+                // Note: This happens when:
+                // - No model embedded at compile time
+                // - No model file found at runtime
+                // - User didn't provide model path
+                // This is expected and normal - regex filtering will be used instead
+                None
+            }
+        };
+        
         Self {
             filters,
             active: Arc::new(AtomicBool::new(true)),
+            #[cfg(feature = "ai-filtering")]
+            ai_filter,
         }
     }
     
@@ -156,30 +176,34 @@ impl HookManager {
     }
     
     pub fn filter_data(&self, data: &[u8]) -> Option<Vec<u8>> {
-        // Try AI filtering first if enabled
+        // Try AI filtering first if model is available
         #[cfg(feature = "ai-filtering")]
         {
-            if let Ok(filter) = crate::ai_filtering::AIDataFilter::new(None) {
+            if let Some(ref filter) = self.ai_filter {
+                // AI model is available - use it for filtering
                 if let Some(result) = filter.filter(data) {
                     if result.should_capture {
                         return Some(data.to_vec());
                     }
+                    // AI filter says don't capture - still check regex as backup
+                    // (AI might miss some patterns that regex catches)
                 }
             }
+            // If ai_filter is None, no model was available - skip AI filtering
         }
         
-        // Fallback to regex pattern matching
-        // Convert to string for pattern matching
+        // Fallback to regex pattern matching (always available)
+        // This works even without an AI model - regex is the default filtering method
         if let Ok(text) = std::str::from_utf8(data) {
             for filter in &self.filters {
                 if filter.pattern.is_match(text) {
-                    // Found matching data
+                    // Found matching data via regex
                     return Some(data.to_vec());
                 }
             }
         }
         
-        // Also check binary patterns
+        // No match found by either AI or regex
         None
     }
     
