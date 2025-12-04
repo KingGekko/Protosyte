@@ -55,7 +55,6 @@ type ExfiltrationSection struct {
 // AnalysisSection contains analysis rig parameters
 type AnalysisSection struct {
 	VMIP          string `yaml:"vm_ip,omitempty"`
-	DashboardPort int    `yaml:"dashboard_port,omitempty"`
 }
 
 // AdaptixC2Section contains AdaptixC2 integration settings
@@ -185,14 +184,4 @@ func (m *MissionConfig) IsAIEnabled() bool {
 	return m.AI != nil && m.AI.Enabled
 }
 
-// GetDashboardAddr returns the dashboard address
-func (m *MissionConfig) GetDashboardAddr() string {
-	if m.Analysis.DashboardPort == 0 {
-		return "localhost:8080"
-	}
-	if m.Analysis.VMIP != "" {
-		return fmt.Sprintf("%s:%d", m.Analysis.VMIP, m.Analysis.DashboardPort)
-	}
-	return fmt.Sprintf("localhost:%d", m.Analysis.DashboardPort)
-}
 

@@ -29,7 +29,7 @@ go build -o protosyte-bridge .
 
 ## Usage
 
-1. Generate FIP via Analysis Rig dashboard
+1. Generate FIP via CLI
 2. Transfer FIP to submission terminal
 3. Set environment variables:
    - `LE_PORTAL_URL`: Law enforcement portal endpoint
@@ -40,7 +40,6 @@ go build -o protosyte-bridge .
 ## Workflow
 
 ```bash
-# 1. Generate FIP in Analysis Rig dashboard
 # 2. Transfer FIP to legal bridge terminal
 cp /tmp/rig_out/forensic_intel_packet.json.gz legal-bridge/
 

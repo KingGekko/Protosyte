@@ -81,7 +81,6 @@ Protosyte is a **non-attributable, passive Cyber Threat Intelligence (CTI) colle
         |
 [C: ANALYSIS RIG VM] (Go - Ephemeral Virtual Machine)
         |
-        | (5. Analyst Dashboard & FIP Generation)
         V
 [HOST OPS STATION] (Management & FIP Retrieval)
         |
@@ -105,7 +104,6 @@ Protosyte is a **non-attributable, passive Cyber Threat Intelligence (CTI) colle
 6. **Broadcast**: Telegram bot receives and immediately deletes messages (stateless dead-drop)
 7. **Retrieval**: Analysis Rig retrieves payloads from Telegram via Tor
 8. **Analysis**: Decryption, decompression, parsing, and storage in SQLite
-9. **Dashboard**: Web interface for analyst review
 10. **FIP Generation**: Forensic Intelligence Packet generation for reporting
 
 ---
@@ -246,12 +244,10 @@ torsocks ./protosyte-rig --mode retrieve --token-env PROTOSYTE_BOT_TOKEN
 # Disable WAN adapter, analyze payloads
 ./protosyte-rig --mode analyze --passphrase-fd 3 3< <(echo "$PASSPHRASE")
 
-# Access dashboard from host: http://192.168.56.10:8080
 ```
 
 **Step 7: Generate FIP**
 ```bash
-# Via dashboard: Click "Generate FIP"
 # Or via command line in VM
 ./protosyte-rig --mode fip --output /tmp/rig_out/
 
@@ -399,13 +395,11 @@ torsocks ./protosyte-rig --mode retrieve
 # 2. Disable WAN, analyze
 ./protosyte-rig --mode analyze
 
-# 3. Access dashboard
 # http://192.168.56.10:8080
 ```
 
 **Phase 6: Reporting**
 ```bash
-# Generate FIP via dashboard
 # Transfer to host
 # Submit via Legal Bridge (if applicable)
 cd legal-bridge
@@ -456,7 +450,6 @@ export LE_PORTAL_KEY="your_key"
 - Decrypts and decompresses data
 - Parses Protobuf envelopes
 - Stores intelligence in SQLite
-- Web dashboard for analyst review
 - FIP (Forensic Intelligence Packet) generation
 - VM destroyed after each session
 
@@ -744,11 +737,9 @@ export LE_PORTAL_KEY="your_submission_key"
 - Verify bot token is correct
 - Ensure messages haven't been deleted (30-second window)
 
-### Dashboard Not Accessible
 
 - Verify host-only network is configured correctly
 - Check VM IP is 192.168.56.10
-- Ensure dashboard port 8080 is not blocked
 - Verify analysis mode completed successfully
 
 ---

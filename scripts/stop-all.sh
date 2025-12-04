@@ -40,7 +40,6 @@ stop_service() {
 # Stop all services
 stop_service "Broadcast Engine" "/tmp/protosyte-broadcast.pid"
 stop_service "Analysis Rig" "/tmp/protosyte-rig.pid"
-stop_service "Next.js Dashboard" "/tmp/protosyte-nextjs.pid"
 stop_service "AdaptixC2 Bridge" "/tmp/protosyte-adaptixc2.pid"
 
 # Also kill any remaining processes by name (fallback)

@@ -62,7 +62,6 @@ fi
 if check_port 8080; then
     echo -e "${YELLOW}Port 8080 already in use, skipping analysis rig API server${NC}"
 else
-    export DASHBOARD_ADDR="localhost:8080"
     nohup ./protosyte-rig --mode analyze > /tmp/protosyte-rig.log 2>&1 &
     echo $! > /tmp/protosyte-rig.pid
     echo -e "${GREEN}Analysis Rig API Server started (PID: $(cat /tmp/protosyte-rig.pid))${NC}"
@@ -70,9 +69,6 @@ else
     sleep 3
 fi
 
-# Start Next.js Dashboard (optional)
-if [ -d "$PROJECT_ROOT/analysis-rig/node_modules" ]; then
-    echo -e "${GREEN}[3/4] Starting Next.js Dashboard...${NC}"
     cd "$PROJECT_ROOT/analysis-rig"
     
     if check_port 3000; then
@@ -110,12 +106,12 @@ fi
 echo -e "${GREEN}=== All Services Started ===${NC}"
 echo ""
 echo "Services:"
-echo "  - Next.js Dashboard: http://localhost:3000 (primary interface)"
+echo "  - CLI: Use analysis-rig commands directly"
 echo "  - API Server: http://localhost:8080 (backend for Next.js)"
 echo "  - Broadcast Engine: http://localhost:8081 (internal)"
 echo "  - AdaptixC2 Bridge: http://localhost:8082 (if configured)"
 echo ""
-echo "CLI Commands (quick access without dashboard):"
+echo "CLI Commands:"
 echo "  - Stats: ./analysis-rig/protosyte-rig --mode stats"
 echo "  - Records: ./analysis-rig/protosyte-rig --mode records"
 echo "  - Hosts: ./analysis-rig/protosyte-rig --mode hosts"

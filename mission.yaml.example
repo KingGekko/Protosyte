@@ -31,5 +31,4 @@ mission:
   # Analysis parameters
   analysis:
     vm_ip: "192.168.56.10"
-    dashboard_port: 8080
 

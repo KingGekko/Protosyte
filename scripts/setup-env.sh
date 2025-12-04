@@ -21,8 +21,6 @@ if [ ! -f "$PROJECT_ROOT/.env" ]; then
 PROTOSYTE_BOT_TOKEN=your_bot_token_here
 PROTOSYTE_PASSPHRASE=your_secure_passphrase_here
 
-# Analysis Rig Dashboard
-DASHBOARD_ADDR=localhost:8080
 
 # AdaptixC2 Integration (Optional)
 ADAPTIXC2_SERVER_URL=
@@ -62,20 +60,10 @@ else
     echo -e "${YELLOW}⚠ Go not found. Install from https://go.dev/dl/${NC}"
 fi
 
-# Check Node.js (for Next.js dashboard)
 if command -v node &> /dev/null; then
     NODE_VERSION=$(node --version)
     echo -e "${GREEN}✓ Node.js installed ($NODE_VERSION)${NC}"
     
-    # Install Next.js dependencies if needed
-    if [ -d "$PROJECT_ROOT/analysis-rig" ] && [ -f "$PROJECT_ROOT/analysis-rig/package.json" ]; then
-        if [ ! -d "$PROJECT_ROOT/analysis-rig/node_modules" ]; then
-            echo -e "${GREEN}Installing Next.js dependencies...${NC}"
-            cd "$PROJECT_ROOT/analysis-rig"
-            npm install
-        else
-            echo -e "${GREEN}✓ Next.js dependencies installed${NC}"
-        fi
     fi
 else
     echo -e "${YELLOW}⚠ Node.js not found. Install from https://nodejs.org/${NC}"
@@ -101,7 +89,7 @@ echo "1. Edit .env file with your configuration"
 echo "2. Run: ./scripts/build-all.sh"
 echo "3. Run: ./scripts/start-all.sh"
 echo ""
-echo "CLI Usage (quick access without dashboard):"
+echo "CLI Usage:"
 echo "  ./analysis-rig/protosyte-rig --mode stats"
 echo "  ./analysis-rig/protosyte-rig --mode records"
 echo "  ./analysis-rig/protosyte-rig --mode hosts"

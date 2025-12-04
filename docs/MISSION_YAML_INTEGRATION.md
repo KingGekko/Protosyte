@@ -45,8 +45,6 @@ let mission_id = config.get_mission_id();
 
 **Configuration Used**:
 - `mission.id` → Stored with intelligence records
-- `analysis.vm_ip` → Dashboard IP address
-- `analysis.dashboard_port` → Dashboard port
 - `exfiltration.telegram_token` → Bot token (or env var)
 
 **Code Integration**:
@@ -57,7 +55,6 @@ missionConfig, err := mission.LoadMissionConfig("")
 if err != nil {
     // Fallback to environment variables
 }
-dashboardAddr := missionConfig.GetDashboardAddr()
 ```
 
 ### 3. **Broadcast Engine (Go)**
@@ -161,7 +158,6 @@ exfiltration:
 
 analysis:
   vm_ip: "192.168.56.10"
-  dashboard_port: 8080
 
 adaptixc2:
   enabled: true
@@ -271,7 +267,6 @@ envelope.mission_id = mission_id;
 ./protosyte-rig --mode analyze --mission /custom/path/mission.yaml
 ```
 
-**Dashboard**: Displays mission ID from configuration
 
 ### Broadcast Engine
 
@@ -319,7 +314,6 @@ The mission ID (`mission.id`) is used throughout the framework:
 2. **Database Records**: Intelligence records tagged with mission ID
 3. **AdaptixC2 Integration**: Mission ID links Protosyte data to AdaptixC2 agents
 4. **FIP Generation**: Mission ID included in Forensic Intelligence Packets
-5. **Dashboard Display**: Mission ID shown in UI
 
 **Format**: Hex string (e.g., `0xDEADBEEFCAFEBABE`)
 
@@ -414,7 +408,6 @@ export ADAPTIXC2_API_KEY="your_api_key"
 ### 4. Verify Integration
 
 ```bash
-# Check mission ID in dashboard
 curl http://localhost:8080/api/stats
 
 # Check AdaptixC2 bridge status
@@ -435,7 +428,6 @@ curl http://localhost:8082/api/status
 - `GetMissionID() uint64`
 - `GetMissionIDString() string`
 - `IsAdaptixC2Enabled() bool`
-- `GetDashboardAddr() string`
 
 ### Rust Module: `protosyte_seed::config`
 

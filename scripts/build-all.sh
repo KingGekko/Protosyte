@@ -50,19 +50,5 @@ if [ -d "$PROJECT_ROOT/protosyte-adaptixc2" ]; then
     go build -o protosyte-adaptixc2 . || echo -e "${YELLOW}Failed to build AdaptixC2 bridge${NC}"
 fi
 
-# Install Next.js dependencies (for dashboard)
-if [ -d "$PROJECT_ROOT/analysis-rig" ] && [ -f "$PROJECT_ROOT/analysis-rig/package.json" ]; then
-    echo -e "${GREEN}[8/8] Installing Next.js Dashboard dependencies...${NC}"
-    cd "$PROJECT_ROOT/analysis-rig"
-    if command -v npm &> /dev/null; then
-        npm install || echo -e "${YELLOW}Failed to install Next.js dependencies${NC}"
-    else
-        echo -e "${YELLOW}npm not found, skipping Next.js dependencies${NC}"
-    fi
-fi
-
-echo -e "${GREEN}=== Build Complete ===${NC}"
-echo ""
-echo "Note: Next.js dashboard requires 'npm install' in analysis-rig/ directory"
 echo "      Run './scripts/setup-env.sh' to install dependencies automatically"
 

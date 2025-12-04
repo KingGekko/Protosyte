@@ -43,8 +43,6 @@ This directory contains automation scripts for managing the Protosyte framework.
 
 **What it starts**:
 - Broadcast Engine (port 8081)
-- Analysis Rig API Server (port 8080) - backend for Next.js
-- Next.js Dashboard (port 3000, if installed) - primary interface
 - AdaptixC2 Bridge (port 8082, if configured)
 
 **Requirements**:
@@ -116,7 +114,6 @@ nano .env
 
 When all services are running:
 
-- **Next.js Dashboard**: http://localhost:3000 (primary interface)
 - **API Server**: http://localhost:8080 (backend API for Next.js)
 - **Broadcast Engine**: http://localhost:8081 (internal)
 - **AdaptixC2 Bridge**: http://localhost:8082 (if configured)
@@ -175,7 +172,6 @@ All service logs are written to `/tmp/`:
 
 - `/tmp/protosyte-broadcast.log` - Broadcast Engine
 - `/tmp/protosyte-rig.log` - Analysis Rig
-- `/tmp/protosyte-nextjs.log` - Next.js Dashboard
 - `/tmp/protosyte-adaptixc2.log` - AdaptixC2 Bridge
 
 ## Troubleshooting

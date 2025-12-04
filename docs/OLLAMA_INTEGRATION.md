@@ -467,9 +467,6 @@ bridge.FeedIntelligence(agentID, ProtosyteIntelligence{
 **API Endpoint**:
 - `POST /api/ai/analyze` - Analyze target with AI
 
-### 3. Dashboard Integration
-
-AI analysis displayed in dashboard:
 - View AI analysis results
 - See vulnerabilities and attack vectors
 - Review exploitation recommendations
