@@ -210,9 +210,16 @@ mod ai_impl {
         }
 
         fn embedded_model() -> Vec<u8> {
-            // Placeholder for embedded ONNX model
-            // In production, embed a trained model here
-            // For now, return empty (will use file path instead)
+            // To embed a model in the binary:
+            // 1. Train your NER model (BERT/RoBERTa) and export to ONNX
+            // 2. Quantize to int8 for size reduction
+            // 3. Place model at protosyte-seed/models/ner_model.onnx
+            // 4. Uncomment the line below to embed it:
+            
+            // include_bytes!("../models/ner_model.onnx").to_vec()
+            
+            // For now, return empty - users must provide model via file path
+            // See docs/AI_FILTERING.md for model training instructions
             vec![]
         }
     }
