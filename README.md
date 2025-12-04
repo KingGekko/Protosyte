@@ -423,7 +423,7 @@ export LE_PORTAL_KEY="your_key"
 - AES-GCM encryption with host binding
 - LZ4 compression
 - Tor-based exfiltration
-- Advanced 2025 evasion techniques
+- Evasion techniques
 
 **Detailed Documentation**: See `protosyte-seed/README.md`, `protosyte-seed-windows/README.md`, `protosyte-seed-macos/README.md`
 
@@ -483,7 +483,7 @@ export LE_PORTAL_KEY="your_key"
 
 ## Advanced Features
 
-### Advanced Evasion Techniques (2025)
+### Evasion Techniques (2025)
 
 **Windows**:
 - Hell's Gate / Halo's Gate (syscall unhooking)
@@ -607,7 +607,7 @@ export LE_PORTAL_KEY="your_key"
 
 ### Advanced Reference Documentation
 
-- **`ADVANCED_EVASION_2025.md`**: Detailed advanced evasion techniques
+- **`ADVANCED_EVASION_2025.md`**: Detailed evasion techniques
 - **`OFFENSIVE_TECHNIQUES.md`**: Platform-specific offensive techniques
 - **`APACHE_VULNERABILITY_ANALYSIS.md`**: Apache vulnerability research example
 - **`HYPOTHETICAL_CAMPAIGN_EXAMPLE.md`**: Complete campaign scenario example
@@ -734,7 +734,7 @@ export LE_PORTAL_KEY="your_submission_key"
 ## Version History
 
 **Version 2.1 - "Virtualized Observer"**:
-- Advanced 2025 evasion techniques
+- Evasion techniques
 - Multi-platform support (Linux, Windows, macOS)
 - AI integration for initial access
 - Quantum-resistant obfuscation
