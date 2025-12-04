@@ -53,6 +53,7 @@ mod privilege_escalation;
 mod tor_detection;
 mod stealth;
 mod advanced_evasion;
+mod proto;
 
 pub use hook::HookManager;
 pub use exfil::ExfiltrationEngine;

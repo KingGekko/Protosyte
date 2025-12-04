@@ -9,6 +9,8 @@ pub mod error_handling;
 pub mod logging;
 pub mod obfuscate;
 pub mod config;
+pub mod injection;
+pub mod proto;
 
 // Re-export commonly used types
 pub use crypto::CryptoManager;

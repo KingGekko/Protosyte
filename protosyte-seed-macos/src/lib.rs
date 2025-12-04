@@ -37,6 +37,7 @@ mod privilege_escalation;
 mod sip_bypass;
 mod stealth;
 mod advanced_evasion;
+mod proto;
 
 pub use hook::HookManager;
 pub use exfil::ExfiltrationEngine;

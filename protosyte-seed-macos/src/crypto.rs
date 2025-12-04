@@ -38,6 +38,13 @@ impl CryptoManager {
     }
     
     pub async fn encrypt(&self, data: &[u8]) -> Vec<u8> {
+        let (encrypted, nonce) = self.encrypt_with_nonce(data).await;
+        let mut result = nonce;
+        result.extend_from_slice(&encrypted);
+        result
+    }
+    
+    pub async fn encrypt_with_nonce(&self, data: &[u8]) -> (Vec<u8>, Vec<u8>) {
         let compressed = compress(data, Some(lz4::block::CompressionMode::HIGHCOMPRESSION(1)), true)
             .unwrap_or_else(|_| data.to_vec());
         
@@ -47,9 +54,7 @@ impl CryptoManager {
         let ciphertext = cipher.encrypt(&nonce, compressed.as_ref())
             .expect("Encryption failed");
         
-        let mut result = nonce.to_vec();
-        result.extend_from_slice(&ciphertext);
-        result
+        (ciphertext, nonce.to_vec())
     }
     
     pub fn decrypt(&self, encrypted: &[u8]) -> Result<Vec<u8>, String> {
