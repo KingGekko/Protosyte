@@ -628,10 +628,6 @@ export LE_PORTAL_KEY="your_key"
 - **`protosyte-adaptixc2/README.md`**: AdaptixC2 integration details
 - **`protosyte-ai/README.md`**: AI integration details
 
-- **`ADVANCED_EVASION_2025.md`**: Detailed evasion techniques
-- **`OFFENSIVE_TECHNIQUES.md`**: Platform-specific offensive techniques
-- **`APACHE_VULNERABILITY_ANALYSIS.md`**: Apache vulnerability research example
-- **`HYPOTHETICAL_CAMPAIGN_EXAMPLE.md`**: Complete campaign scenario example
 
 ### External Resources
 
