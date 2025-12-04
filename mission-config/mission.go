@@ -17,9 +17,9 @@ type MissionConfig struct {
 	Target       TargetSection       `yaml:"target"`
 	Exfiltration ExfiltrationSection `yaml:"exfiltration"`
 	Analysis     AnalysisSection     `yaml:"analysis"`
-	AdaptixC2    *AdaptixC2Section  `yaml:"adaptixc2,omitempty"`
-	Stealth      StealthSection     `yaml:"stealth,omitempty"`
-	AI           *AISection         `yaml:"ai,omitempty"`
+	AdaptixC2    *AdaptixC2Section   `yaml:"adaptixc2,omitempty"`
+	Stealth      StealthSection      `yaml:"stealth,omitempty"`
+	AI           *AISection          `yaml:"ai,omitempty"`
 }
 
 // MissionSection contains mission metadata
@@ -54,44 +54,44 @@ type ExfiltrationSection struct {
 
 // AnalysisSection contains analysis rig parameters
 type AnalysisSection struct {
-	VMIP          string `yaml:"vm_ip,omitempty"`
+	VMIP string `yaml:"vm_ip,omitempty"`
 }
 
 // AdaptixC2Section contains AdaptixC2 integration settings
 type AdaptixC2Section struct {
-	Enabled          bool                `yaml:"enabled"`
-	Server           string              `yaml:"server,omitempty"`
-	APIKey           string              `yaml:"api_key,omitempty"` // Usually from env
-	AutoDeployProtosyte bool             `yaml:"auto_deploy_protosyte,omitempty"`
-	ActivePhase      *PhaseConfig        `yaml:"active_phase,omitempty"`
-	PassivePhase     *PhaseConfig        `yaml:"passive_phase,omitempty"`
+	Enabled             bool         `yaml:"enabled"`
+	Server              string       `yaml:"server,omitempty"`
+	APIKey              string       `yaml:"api_key,omitempty"` // Usually from env
+	AutoDeployProtosyte bool         `yaml:"auto_deploy_protosyte,omitempty"`
+	ActivePhase         *PhaseConfig `yaml:"active_phase,omitempty"`
+	PassivePhase        *PhaseConfig `yaml:"passive_phase,omitempty"`
 }
 
 // PhaseConfig defines active/passive phase configuration
 type PhaseConfig struct {
-	Enabled    bool     `yaml:"enabled"`
-	Duration   int      `yaml:"duration,omitempty"` // seconds
-	StartAfter int      `yaml:"start_after,omitempty"` // seconds
-	Operations []string `yaml:"operations,omitempty"`
-	CollectionOnly bool `yaml:"collection_only,omitempty"`
+	Enabled        bool     `yaml:"enabled"`
+	Duration       int      `yaml:"duration,omitempty"`    // seconds
+	StartAfter     int      `yaml:"start_after,omitempty"` // seconds
+	Operations     []string `yaml:"operations,omitempty"`
+	CollectionOnly bool     `yaml:"collection_only,omitempty"`
 }
 
 // StealthSection contains stealth configuration
 type StealthSection struct {
-	MemoryOnly    bool `yaml:"memory_only,omitempty"`
-	HideFromProc  bool `yaml:"hide_from_proc,omitempty"`
-	UseTor        bool `yaml:"use_tor,omitempty"`
-	TimingJitter  bool `yaml:"timing_jitter,omitempty"`
+	MemoryOnly   bool `yaml:"memory_only,omitempty"`
+	HideFromProc bool `yaml:"hide_from_proc,omitempty"`
+	UseTor       bool `yaml:"use_tor,omitempty"`
+	TimingJitter bool `yaml:"timing_jitter,omitempty"`
 }
 
 // AISection contains Ollama AI integration settings
 type AISection struct {
-	Enabled          bool   `yaml:"enabled"`
-	OllamaHost       string `yaml:"ollama_host,omitempty"`
-	OllamaModel      string `yaml:"ollama_model,omitempty"`
-	AutoExploit      bool   `yaml:"auto_exploit,omitempty"`
-	CVEResearch      bool   `yaml:"cve_research,omitempty"`
-	GitHubAutoApprove bool  `yaml:"github_auto_approve,omitempty"`
+	Enabled           bool   `yaml:"enabled"`
+	OllamaHost        string `yaml:"ollama_host,omitempty"`
+	OllamaModel       string `yaml:"ollama_model,omitempty"`
+	AutoExploit       bool   `yaml:"auto_exploit,omitempty"`
+	CVEResearch       bool   `yaml:"cve_research,omitempty"`
+	GitHubAutoApprove bool   `yaml:"github_auto_approve,omitempty"`
 }
 
 var globalConfig *MissionConfig
@@ -183,5 +183,3 @@ func (m *MissionConfig) IsAdaptixC2Enabled() bool {
 func (m *MissionConfig) IsAIEnabled() bool {
 	return m.AI != nil && m.AI.Enabled
 }
-
-
