@@ -1,0 +1,62 @@
+MIT License with Security Research Restrictions
+
+Copyright (c) 2025 Protosyte Framework Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, subject to the following conditions:
+
+1. AUTHORIZED USE ONLY: The Software may ONLY be used for:
+   - Authorized penetration testing with explicit written permission
+   - Legitimate security research in controlled environments
+   - Red team exercises with proper scope and authorization
+   - Educational purposes in academic settings with appropriate oversight
+
+2. LEGAL COMPLIANCE: The user must:
+   - Obtain explicit written authorization before any use
+   - Comply with all applicable local, state, and federal laws
+   - Not use the Software for any unauthorized access or illegal activities
+   - Ensure proper scope definition and rules of engagement
+
+3. PROHIBITED USES: The Software SHALL NOT be used for:
+   - Unauthorized access to computer systems
+   - Data theft or espionage
+   - Any malicious purposes
+   - Any activities that violate laws or regulations
+   - Testing systems without explicit written authorization
+
+4. DISCLAIMER OF WARRANTY: THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY
+   OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+   OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+   DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+   OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+   USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+5. NO LIABILITY: The authors and contributors assume no liability for misuse,
+   damage, or any consequences arising from the use or misuse of this Software.
+   Users are solely responsible for ensuring their use complies with all
+   applicable laws and regulations.
+
+6. SECURITY RESEARCH EXCEPTION: This license does not grant permission to
+   bypass security measures, access unauthorized systems, or violate any
+   terms of service or end-user license agreements.
+
+By using, copying, modifying, or distributing this Software, you agree to
+these terms and acknowledge that you have read and understood the legal
+requirements and restrictions.
+
+If you do not agree with these terms, you may not use, copy, modify, or
+distribute this Software.
+
+---
+
+IMPORTANT LEGAL NOTICE:
+
+This Software is a security research tool designed for authorized testing
+only. Unauthorized use of this Software may violate computer fraud and abuse
+laws in your jurisdiction. Always obtain explicit written authorization before
+using this Software. The authors and contributors are not responsible for any
+misuse or illegal use of this Software.
+
