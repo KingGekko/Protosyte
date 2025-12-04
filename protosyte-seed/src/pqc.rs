@@ -172,18 +172,25 @@ mod pqc_impl {
             };
             use aes_gcm::aead::generic_array::GenericArray;
             
-            let cipher = AesGcm::<Aes256>::new(&aes_key.into());
-            let nonce = GenericArray::from_slice(&[0u8; 12]); // In production, use random nonce
+            // Generate random nonce for AES-GCM (CRITICAL: must be unique per encryption)
+            let mut nonce_bytes = [0u8; 12];
+            rand::thread_rng().fill_bytes(&mut nonce_bytes);
+            let nonce = GenericArray::from_slice(&nonce_bytes);
             
+            let cipher = AesGcm::<Aes256>::new(&aes_key.into());
             let encrypted_data = cipher.encrypt(nonce, data)
                 .map_err(|e| format!("AES-GCM encryption failed: {}", e))?;
             
-            // Step 4: Sign with Dilithium
-            let signature = self.dilithium.sign(&encrypted_data)?;
+            // Step 4: Sign with Dilithium (include nonce in signature for integrity)
+            let mut data_to_sign = Vec::with_capacity(nonce_bytes.len() + encrypted_data.len());
+            data_to_sign.extend_from_slice(&nonce_bytes);
+            data_to_sign.extend_from_slice(&encrypted_data);
+            let signature = self.dilithium.sign(&data_to_sign)?;
             
             Ok(EncryptedData {
                 kyber_ciphertext: ciphertext,
                 encrypted_data,
+                nonce: nonce_bytes,
                 signature,
                 public_key: self.kyber.public_key().to_vec(),
                 dilithium_public_key: self.dilithium.public_key().to_vec(),
@@ -192,10 +199,14 @@ mod pqc_impl {
 
         /// Decrypt hybrid encrypted data
         pub fn decrypt(&self, encrypted: &EncryptedData) -> Result<Vec<u8>, String> {
-            // Step 1: Verify signature
+            // Step 1: Verify signature (includes nonce for integrity)
+            let mut data_to_verify = Vec::with_capacity(encrypted.nonce.len() + encrypted.encrypted_data.len());
+            data_to_verify.extend_from_slice(&encrypted.nonce);
+            data_to_verify.extend_from_slice(&encrypted.encrypted_data);
+            
             if !DilithiumSigner::verify(
                 &encrypted.dilithium_public_key,
-                &encrypted.encrypted_data,
+                &data_to_verify,
                 &encrypted.signature,
             )? {
                 return Err("Signature verification failed".to_string());
@@ -207,7 +218,7 @@ mod pqc_impl {
             // Step 3: Derive AES key
             let aes_key = KyberKeyExchange::derive_aes_key(&shared_secret);
             
-            // Step 4: Decrypt with AES-GCM
+            // Step 4: Decrypt with AES-GCM using the stored nonce
             use aes_gcm::{
                 aes::Aes256,
                 AesGcm, KeyInit, aead::Aead,
@@ -215,7 +226,7 @@ mod pqc_impl {
             use aes_gcm::aead::generic_array::GenericArray;
             
             let cipher = AesGcm::<Aes256>::new(&aes_key.into());
-            let nonce = GenericArray::from_slice(&[0u8; 12]); // Must match encryption nonce
+            let nonce = GenericArray::from_slice(&encrypted.nonce);
             
             let decrypted = cipher.decrypt(nonce, encrypted.encrypted_data.as_ref())
                 .map_err(|e| format!("AES-GCM decryption failed: {}", e))?;
@@ -227,6 +238,7 @@ mod pqc_impl {
     pub struct EncryptedData {
         pub kyber_ciphertext: Vec<u8>,
         pub encrypted_data: Vec<u8>,
+        pub nonce: [u8; 12],  // AES-GCM nonce (must be unique per encryption)
         pub signature: Vec<u8>,
         pub public_key: Vec<u8>,
         pub dilithium_public_key: Vec<u8>,
