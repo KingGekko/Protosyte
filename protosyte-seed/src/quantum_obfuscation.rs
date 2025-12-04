@@ -1,24 +1,27 @@
-// Quantum-Resistant and AI-Driven Obfuscation Techniques (2025)
-// Implements advanced obfuscation methods inspired by quantum computing and AI
+// String Obfuscation and Obfuscation Techniques
+// NOTE: This is NOT quantum-resistant cryptography. It is simple XOR obfuscation.
+// For actual post-quantum cryptography, use pqcrypto (Kyber, Dilithium) instead.
 
 use sha2::{Sha256, Digest};
 use rand::Rng;
 
-pub struct QuantumObfuscation;
+pub struct StringObfuscation;
 
-impl QuantumObfuscation {
+impl StringObfuscation {
     // ============================================================================
-    // QUANTUM-RESISTANT STRING OBFUSCATION
+    // STRING OBFUSCATION (XOR-based, NOT quantum-resistant)
     // ============================================================================
-    // Uses post-quantum cryptographic techniques for obfuscation
+    // Simple XOR obfuscation for string hiding. Not cryptographically secure.
+    // For actual encryption, use AES-GCM from crypto.rs
+    // For post-quantum crypto, use pqcrypto crate
     
-    pub fn quantum_obfuscate_string(plaintext: &str) -> Vec<u8> {
-        // Use hash-based obfuscation (quantum-resistant)
+    pub fn obfuscate_string(plaintext: &str) -> Vec<u8> {
+        // Use hash-based XOR obfuscation (NOT quantum-resistant, just obfuscation)
         let mut hasher = Sha256::new();
         hasher.update(plaintext.as_bytes());
         let hash = hasher.finalize();
         
-        // XOR with hash for obfuscation
+        // XOR with hash for obfuscation (simple encoding, not encryption)
         let mut obfuscated = Vec::new();
         let hash_bytes = hash.as_slice();
         
@@ -29,7 +32,7 @@ impl QuantumObfuscation {
         obfuscated
     }
     
-    pub fn quantum_deobfuscate_string(obfuscated: &[u8], hash: &[u8]) -> String {
+    pub fn deobfuscate_string(obfuscated: &[u8], hash: &[u8]) -> String {
         let mut deobfuscated = Vec::new();
         
         for (i, &byte) in obfuscated.iter().enumerate() {
@@ -77,49 +80,40 @@ impl QuantumObfuscation {
     }
     
     // ============================================================================
-    // POLYMORPHIC CODE GENERATION
+    // POLYMORPHIC CODE GENERATION (DISABLED - UNSAFE)
     // ============================================================================
-    // Generates multiple functionally equivalent code variants
+    // WARNING: Random instruction swapping without dependency analysis is UNSAFE
+    // and will likely cause crashes (SIGILL, SIGSEGV). This is disabled.
+    // For proper polymorphic code, use LLVM-based obfuscation (O-LLVM, Hikari)
+    // or a proper code analysis framework that understands instruction dependencies.
     
-    pub fn generate_polymorphic_variants(base_code: &[u8], num_variants: usize) -> Vec<Vec<u8>> {
-        let mut variants = Vec::new();
-        let mut rng = rand::thread_rng();
+    #[deprecated(note = "Unsafe - can cause crashes. Use LLVM-based obfuscation instead.")]
+    pub fn generate_polymorphic_variants(_base_code: &[u8], _num_variants: usize) -> Vec<Vec<u8>> {
+        // This function is disabled because it's unsafe.
+        // Randomly swapping bytes/instructions without understanding:
+        // - Instruction dependencies
+        // - Register usage
+        // - Memory access patterns
+        // - Control flow
+        // will almost certainly crash the target process.
         
-        for _ in 0..num_variants {
-            let mut variant = base_code.to_vec();
-            
-            // Apply random transformations
-            for _ in 0..rng.gen_range(1..=10) {
-                match rng.gen_range(0..=4) {
-                    0 => Self::insert_nops(&mut variant),
-                    1 => Self::swap_instructions(&mut variant),
-                    2 => Self::add_redundant_ops(&mut variant),
-                    3 => Self::reorder_blocks(&mut variant),
-                    4 => Self::change_register_usage(&mut variant),
-                    _ => {}
-                }
-            }
-            
-            variants.push(variant);
-        }
-        
-        variants
+        // Return empty vector - function is disabled
+        Vec::new()
     }
     
-    fn insert_nops(code: &mut Vec<u8>) {
-        let mut rng = rand::thread_rng();
-        let pos = rng.gen_range(0..code.len());
-        code.insert(pos, 0x90); // NOP
+    // SAFE: Only insert NOPs at safe locations (instruction boundaries)
+    // This is much safer than random swapping, but still not recommended
+    // without proper disassembly and analysis
+    fn insert_nops_at_boundaries(code: &mut Vec<u8>) {
+        // This would require full disassembly to find instruction boundaries
+        // For now, disabled to prevent crashes
+        // TODO: Implement proper instruction boundary detection using capstone/keystone
     }
     
-    fn swap_instructions(code: &mut Vec<u8>) {
-        // Swap independent instructions
-        // Simplified - real implementation would analyze dependencies
-        let mut rng = rand::thread_rng();
-        if code.len() >= 2 {
-            let i = rng.gen_range(0..code.len() - 1);
-            code.swap(i, i + 1);
-        }
+    // DEPRECATED: Random byte swapping is unsafe
+    #[deprecated(note = "Unsafe - can corrupt instructions and cause crashes")]
+    fn swap_instructions(_code: &mut Vec<u8>) {
+        // Disabled - see generate_polymorphic_variants for explanation
     }
     
     fn add_redundant_ops(code: &mut Vec<u8>) {

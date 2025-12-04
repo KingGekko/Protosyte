@@ -156,6 +156,19 @@ impl HookManager {
     }
     
     pub fn filter_data(&self, data: &[u8]) -> Option<Vec<u8>> {
+        // Try AI filtering first if enabled
+        #[cfg(feature = "ai-filtering")]
+        {
+            if let Ok(filter) = crate::ai_filtering::AIDataFilter::new(None) {
+                if let Some(result) = filter.filter(data) {
+                    if result.should_capture {
+                        return Some(data.to_vec());
+                    }
+                }
+            }
+        }
+        
+        // Fallback to regex pattern matching
         // Convert to string for pattern matching
         if let Ok(text) = std::str::from_utf8(data) {
             for filter in &self.filters {

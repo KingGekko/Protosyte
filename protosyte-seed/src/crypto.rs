@@ -47,6 +47,13 @@ impl CryptoManager {
     }
     
     pub async fn encrypt_with_nonce(&self, data: &[u8]) -> (Vec<u8>, Vec<u8>) {
+        // Use post-quantum crypto if enabled
+        #[cfg(feature = "post-quantum")]
+        {
+            // For hybrid PQC, we'd need a peer public key
+            // For now, use classical crypto (fallback below)
+        }
+        
         // Compress first
         let compressed = compress(data, Some(lz4::block::CompressionMode::HIGHCOMPRESSION(1)), true)
             .unwrap_or_else(|_| data.to_vec());
