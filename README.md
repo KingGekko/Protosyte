@@ -90,6 +90,9 @@ Protosyte is a **non-attributable, passive Cyber Threat Intelligence (CTI) colle
   [D: LEGAL BRIDGE] (Go - One-Time Terminal)
 
 [E: AI INTEGRATION] (Go - Optional, for Initial Access)
+
+[F: ADAPTIXC2 BRIDGE] (Go - Optional, Hybrid Active/Passive Model)
+
 ```
 
 ### Data Flow
@@ -196,6 +199,11 @@ target:
       type: "SESSION_TOKEN"
   
 exfiltration:
+
+adaptixc2:
+  enabled: true
+  auto_deploy_protosyte: true
+
   interval_seconds: 347
   jitter_percent: 25
   tor_proxy: "socks5://127.0.0.1:9050"
@@ -479,6 +487,20 @@ export LE_PORTAL_KEY="your_key"
 
 **Detailed Documentation**: See `protosyte-ai/README.md`
 
+### Component F: AdaptixC2 Integration (Go) - Optional
+
+**Purpose**: Hybrid active/passive model combining active C2 with passive collection
+
+**Key Features**:
+- Automatic Protosyte deployment via AdaptixC2 agents
+- Intelligence feed to AdaptixC2 operators
+- Active/passive phase management
+- Multi-platform support (Linux, Windows, macOS)
+- Seamless integration with mission.yaml configuration
+
+**Detailed Documentation**: See `protosyte-adaptixc2/README.md`
+
+
 ---
 
 ## Advanced Features
@@ -603,6 +625,7 @@ export LE_PORTAL_KEY="your_key"
 - **`broadcast-engine/README.md`**: Broadcast Engine details
 - **`analysis-rig/README.md`**: Analysis Rig details
 - **`legal-bridge/README.md`**: Legal Bridge details
+- **`protosyte-adaptixc2/README.md`**: AdaptixC2 integration details
 - **`protosyte-ai/README.md`**: AI integration details
 
 ### Advanced Reference Documentation
@@ -649,6 +672,11 @@ Protosyte/
 mission:
   id: 0xDEADBEEFCAFEBABE  # Unique mission identifier
   name: "Operation Name"
+
+adaptixc2:
+  enabled: true
+  auto_deploy_protosyte: true
+
   
 target:
   ip: "target-ip"
