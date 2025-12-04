@@ -27,7 +27,20 @@
 
 ### What is Protosyte?
 
-Protosyte is a **non-attributable, passive Cyber Threat Intelligence (CTI) collection framework** engineered for forensic stealth and operational security. It operates on the principle of **Unidirectional Passive Observation (UPO)**: intelligence flows outward from a target via its own systems, while zero commands, queries, or active signatures ever flow back.
+### Why Protobuf?
+
+**Protocol Buffers (Protobuf)** is the foundation of Protosyte's data serialization and transmission architecture. All intelligence data is structured, serialized, and wrapped in Protobuf `Envelope` messages before encryption and exfiltration. This provides:
+
+- **Binary Efficiency**: Compact, fast serialization for stealthy data transmission
+- **Type Safety**: Strongly-typed message definitions ensure data integrity across all components
+- **Version Compatibility**: Schema evolution allows framework updates without breaking compatibility
+- **Cross-Language Support**: Protobuf enables seamless data exchange between Rust (Silent Seed) and Go (Analysis Rig, Broadcast Engine)
+- **Structured Intelligence**: The `Envelope` → `DataBlob` hierarchy provides clear separation of metadata (mission ID, timestamps, sequences) from encrypted payloads
+
+The framework's name reflects this core technology: **Proto**buf powers the **syte** (parasite-like passive observation).
+
+
+Protosyte (derived from **Proto**buf + para**syte**) is a **non-attributable, passive Cyber Threat Intelligence (CTI) collection framework** engineered for forensic stealth and operational security. It operates on the principle of **Unidirectional Passive Observation (UPO)**: intelligence flows outward from a target via its own systems, while zero commands, queries, or active signatures ever flow back.
 
 **It is NOT traditional malware** - it is a "ghost in the signal" that uses the target's infrastructure as its substrate and ephemeral cloud services as its broadcast medium.
 
