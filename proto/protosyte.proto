@@ -1,0 +1,54 @@
+syntax = "proto3";
+package protosyte.core.v2;
+
+import "google/protobuf/timestamp.proto";
+
+// Top-level envelope for all transmissions
+message Envelope {
+  fixed64 mission_id = 1;        // Obfuscated, non-sequential identifier
+  google.protobuf.Timestamp collected_ts = 2; // Original collection time
+  fixed32 sequence = 3;          // Monotonically increasing per host
+  oneof payload {
+    Heartbeat heartbeat = 4;
+    DataBlob data = 5;
+    Error error = 6;
+  }
+  bytes hmac_sha256 = 15;        // HMAC over all prior fields
+}
+
+// Keep-alive and health signal
+message Heartbeat {
+  float load_avg_1m = 1;
+  uint32 mem_free_mb = 2;
+  repeated string active_hooks = 3; // Checksum of hooked function names
+}
+
+// Primary data container
+message DataBlob {
+  enum DataType {
+    UNSPECIFIED = 0;
+    CREDENTIAL_BLOB = 1;
+    NETWORK_FLOW = 2;
+    FILE_METADATA = 3;
+    PROCESS_INJECTION = 4;
+    CONFIG_STATE = 5;
+  }
+  bytes host_fingerprint = 1; // SHA256 of static host markers
+  DataType data_type = 2;
+  bytes encrypted_payload = 3;    // LZ4(AES-GCM(inner_payload, aad=host_fingerprint))
+  bytes aes_gcm_nonce = 4;        // 12-byte nonce
+  uint32 original_size = 5;       // Uncompressed size for validation
+}
+
+message Error {
+  enum Severity {
+    UNKNOWN = 0;
+    HOOK_FAILURE = 1;
+    BUFFER_OVERFLOW = 2;
+    EXFIL_DISABLED = 3;
+  }
+  Severity severity = 1;
+  string context = 2; // e.g., "hook_ssl_write", "buffer_alloc"
+  int32 errno = 3;
+}
+
