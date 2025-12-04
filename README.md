@@ -581,7 +581,7 @@ export LE_PORTAL_KEY="your_key"
 - Stateless communication
 - Ephemeral analysis environments
 - No persistent infrastructure
-- Advanced evasion techniques
+- Evasion techniques
 
 ### Responsible Use
 
@@ -754,7 +754,7 @@ This framework is provided for **authorized security research and penetration te
 
 For detailed information:
 - **Component-specific details**: See component README files
-- **Advanced techniques**: See `ADVANCED_EVASION_2025.md` and `OFFENSIVE_TECHNIQUES.md`
+- **Techniques**: See `ADVANCED_EVASION_2025.md` and `OFFENSIVE_TECHNIQUES.md`
 - **Example scenarios**: See `HYPOTHETICAL_CAMPAIGN_EXAMPLE.md`
 - **Vulnerability research**: See `APACHE_VULNERABILITY_ANALYSIS.md`
 
