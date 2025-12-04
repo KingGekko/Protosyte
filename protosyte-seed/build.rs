@@ -41,19 +41,18 @@ fn check_and_embed_model() {
         let should_embed = env::var("PROTOSYTE_EMBED_MODEL")
             .unwrap_or_else(|_| "auto".to_string());
         
-        if should_embed == "auto" || should_embed == "1" || should_embed == "true" {
+        if should_embed == "1" || should_embed == "true" {
+            // User explicitly wants to embed - enable compile-time embedding
+            println!("cargo:rustc-cfg=embed_model");
+            println!("cargo:warning=ONNX model found at: {}", model_path);
+            println!("cargo:warning=Model will be embedded in binary at compile time");
+            println!("cargo:rerun-if-changed={}", model_path);
+        } else {
+            // Model found but embedding not requested - just inform user
             println!("cargo:warning=Found ONNX model at: {}", model_path);
-            println!("cargo:warning=To embed it, set PROTOSYTE_EMBED_MODEL=1 and rebuild");
+            println!("cargo:warning=To embed it in binary, set PROTOSYTE_EMBED_MODEL=1");
             println!("cargo:warning=Or use: PROTOSYTE_EMBED_MODEL=1 cargo build --features ai-filtering");
-            
-            // Create a flag file that the Rust code can check
-            let out_dir = env::var("OUT_DIR").unwrap();
-            let flag_file = format!("{}/model_embedded.flag", out_dir);
-            if should_embed != "auto" {
-                std::fs::write(&flag_file, model_path).ok();
-                println!("cargo:rustc-cfg=embed_model");
-                println!("cargo:warning=Model will be embedded in binary");
-            }
+            println!("cargo:warning=Model can still be loaded at runtime from this location");
         }
     } else {
         // No model found - this is OK, user can provide at runtime
