@@ -3,7 +3,7 @@
 </div>
 
 # Protosyte Framework
-## Version 2.1 - "Virtualized Observer"
+## Version 2.3 - "Adaptive Stealth"
 
 **⚠️ CRITICAL DISCLAIMER**: This framework is designed for **authorized penetration testing, security research, and red team exercises only**. Unauthorized use is illegal and unethical. Always obtain explicit written authorization before use.
 
