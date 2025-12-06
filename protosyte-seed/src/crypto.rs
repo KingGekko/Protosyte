@@ -4,7 +4,14 @@ use zeroize::Zeroize;
 use sha2::{Sha256, Digest};
 use hmac::{Hmac, Mac};
 use hmac::digest::KeyInit as HmacKeyInit;
+use pbkdf2::pbkdf2_hmac;
 use std::env;
+
+// Constants for key derivation
+const PBKDF2_ITERATIONS: u32 = 100_000; // OWASP recommended minimum
+const KEY_SIZE: usize = 32; // AES-256 key size
+const SALT_SIZE: usize = 16; // 128-bit salt
+const NONCE_SIZE: usize = 12; // GCM nonce size
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -14,16 +21,33 @@ pub struct CryptoManager {
 }
 
 impl CryptoManager {
+    /// Create a new CryptoManager with secure key derivation
+    /// 
+    /// # Security
+    /// - Requires PROTOSYTE_PASSPHRASE environment variable (no default)
+    /// - Uses PBKDF2-HMAC-SHA256 with 100,000 iterations
+    /// - Generates random salt per instance
+    /// 
+    /// # Panics
+    /// Panics if PROTOSYTE_PASSPHRASE is not set (security requirement)
     pub fn new() -> Self {
-        // Key derivation from mission passphrase
+        // Key derivation from mission passphrase - NO DEFAULT for security
         let passphrase = env::var("PROTOSYTE_PASSPHRASE")
-            .unwrap_or_else(|_| "default-passphrase-change-in-production".to_string());
+            .expect("PROTOSYTE_PASSPHRASE environment variable must be set for security");
         
-        // Derive key using PBKDF2-like approach with SHA256
-        let mut hasher = Sha256::new();
-        hasher.update(passphrase.as_bytes());
-        hasher.update(b"protosyte-salt-v2");
-        let key = hasher.finalize().to_vec();
+        // Generate random salt for this instance
+        let mut salt = [0u8; SALT_SIZE];
+        use rand::RngCore;
+        rand::thread_rng().fill_bytes(&mut salt);
+        
+        // Derive key using PBKDF2-HMAC-SHA256 (secure key derivation)
+        let mut key = vec![0u8; KEY_SIZE];
+        pbkdf2_hmac::<Sha256>(
+            passphrase.as_bytes(),
+            &salt,
+            PBKDF2_ITERATIONS,
+            &mut key,
+        );
         
         Self { 
             key,
@@ -31,11 +55,23 @@ impl CryptoManager {
         }
     }
     
+    /// Derive key from passphrase using PBKDF2
+    /// 
+    /// # Arguments
+    /// * `passphrase` - The passphrase to derive key from
+    /// * `salt` - Salt bytes (should be random, at least 16 bytes)
+    /// 
+    /// # Returns
+    /// 32-byte key suitable for AES-256
     pub fn derive_key_from_passphrase(passphrase: &str, salt: &[u8]) -> Vec<u8> {
-        let mut hasher = Sha256::new();
-        hasher.update(passphrase.as_bytes());
-        hasher.update(salt);
-        hasher.finalize().to_vec()
+        let mut key = vec![0u8; KEY_SIZE];
+        pbkdf2_hmac::<Sha256>(
+            passphrase.as_bytes(),
+            salt,
+            PBKDF2_ITERATIONS,
+            &mut key,
+        );
+        key
     }
     
     pub async fn encrypt(&self, data: &[u8]) -> Vec<u8> {
@@ -70,14 +106,14 @@ impl CryptoManager {
     }
     
     pub fn decrypt(&self, encrypted: &[u8]) -> Result<Vec<u8>, String> {
-        if encrypted.len() < 12 {
+        if encrypted.len() < NONCE_SIZE {
             return Err("Ciphertext too short".to_string());
         }
         
         let cipher = Aes256Gcm::new_from_slice(&self.key)
             .map_err(|e| format!("Key init failed: {}", e))?;
         
-        let (nonce_bytes, ciphertext) = encrypted.split_at(12);
+        let (nonce_bytes, ciphertext) = encrypted.split_at(NONCE_SIZE);
         let nonce = aes_gcm::aead::generic_array::GenericArray::from_slice(nonce_bytes);
         
         let decrypted = cipher.decrypt(nonce, ciphertext)

@@ -73,7 +73,7 @@ impl StringObfuscation {
             if data[i..i + pattern.len()] == *pattern {
                 // Mutate this section
                 for j in i..i + pattern.len() {
-                    data[j] = rng.gen::<u8>();
+                    data[j] = rng.random::<u8>();
                 }
             }
         }
@@ -110,17 +110,29 @@ impl StringObfuscation {
         // TODO: Implement proper instruction boundary detection using capstone/keystone
     }
     
+    fn insert_nops(code: &mut Vec<u8>) {
+        // Simple NOP insertion - unsafe without proper disassembly
+        // This is a placeholder that does nothing to avoid crashes
+        // In production, would use proper instruction boundary detection
+    }
+    
     // DEPRECATED: Random byte swapping is unsafe
     #[deprecated(note = "Unsafe - can corrupt instructions and cause crashes")]
     fn swap_instructions(_code: &mut Vec<u8>) {
         // Disabled - see generate_polymorphic_variants for explanation
     }
     
+    fn quantum_obfuscate_string(plaintext: &str) -> Vec<u8> {
+        // Alias for obfuscate_string - same XOR-based obfuscation
+        Self::obfuscate_string(plaintext)
+    }
+    
     fn add_redundant_ops(code: &mut Vec<u8>) {
         // Add operations that don't affect functionality
+        use rand::Rng;
         let mut rng = rand::thread_rng();
         let redundant = vec![0x48, 0x31, 0xC0]; // xor rax, rax (no-op)
-        let pos = rng.gen_range(0..code.len());
+        let pos = rng.random_range(0..code.len());
         code.splice(pos..pos, redundant);
     }
     
@@ -207,15 +219,15 @@ impl StringObfuscation {
     
     pub fn metamorphic_mutate(code: &[u8]) -> Vec<u8> {
         let mut mutated = code.to_vec();
+        use rand::Rng;
         let mut rng = rand::thread_rng();
         
         // Apply random mutations
-        for _ in 0..rng.gen_range(1..=5) {
-            match rng.gen_range(0..=3) {
+        for _ in 0..rng.random_range(1..=5) {
+            match rng.random_range(0..=2) {
                 0 => Self::insert_nops(&mut mutated),
-                1 => Self::swap_instructions(&mut mutated),
-                2 => Self::add_redundant_ops(&mut mutated),
-                3 => Self::change_register_usage(&mut mutated),
+                1 => Self::add_redundant_ops(&mut mutated),
+                2 => Self::change_register_usage(&mut mutated),
                 _ => {}
             }
         }

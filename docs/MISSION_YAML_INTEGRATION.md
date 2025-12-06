@@ -193,7 +193,7 @@ Sensitive values are **always** overridden by environment variables for security
 | `exfiltration.telegram_token` | `PROTOSYTE_BOT_TOKEN` | Env var wins |
 | `adaptixc2.api_key` | `ADAPTIXC2_API_KEY` | Env var wins |
 | `adaptixc2.server` | `ADAPTIXC2_SERVER_URL` | Env var wins |
-| `mission.passphrase` | `PROTOSYTE_PASSPHRASE` | Env var only |
+| `mission.passphrase` | `PROTOSYTE_PASSPHRASE` | Env var only (**REQUIRED** in v3.0+) |
 
 ---
 
@@ -393,7 +393,7 @@ nano mission.yaml
 
 ```bash
 export PROTOSYTE_BOT_TOKEN="your_token"
-export PROTOSYTE_PASSPHRASE="your_passphrase"
+export PROTOSYTE_PASSPHRASE="your_passphrase"  # REQUIRED in v3.0+ - will panic if not set
 export ADAPTIXC2_SERVER_URL="https://c2.example.com"
 export ADAPTIXC2_API_KEY="your_api_key"
 ```

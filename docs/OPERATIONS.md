@@ -239,7 +239,7 @@ torsocks ./protosyte-rig --mode retrieve
 #### 6.3 Analyze Intelligence
 
 ```bash
-export PROTOSYTE_PASSPHRASE="your_passphrase"
+export PROTOSYTE_PASSPHRASE="your_passphrase"  # REQUIRED in v3.0+ - will panic if not set
 ./protosyte-rig --mode analyze
 ```
 
@@ -347,9 +347,16 @@ gpg -c protosyte.db.backup
 
 #### Passphrase Handling
 
+**⚠️ BREAKING CHANGE (v3.0+)**: `PROTOSYTE_PASSPHRASE` is now **REQUIRED**. The application will panic if not set. This is a security requirement - there is no default passphrase.
+
+**Key Derivation**:
+- Uses PBKDF2-HMAC-SHA256 with 100,000 iterations (OWASP recommended minimum)
+- Random salt generated per instance
+- 32-byte key for AES-256 encryption
+
 ✅ **GOOD**: Environment variable
 ```bash
-export PROTOSYTE_PASSPHRASE="your_passphrase"
+export PROTOSYTE_PASSPHRASE="your_passphrase"  # REQUIRED in v3.0+ - will panic if not set
 ```
 
 ❌ **BAD**: In mission.yaml or scripts (never hardcode)
@@ -368,7 +375,9 @@ export PROTOSYTE_BOT_TOKEN="your_token"
 #### Encryption
 
 - All data encrypted with AES-GCM
-- Keys derived from passphrase via PBKDF2
+- Keys derived from passphrase via PBKDF2-HMAC-SHA256 with 100,000 iterations (OWASP recommended minimum)
+- Random salt generated per instance
+- No default passphrase - REQUIRED in v3.0+ (application will panic if not set)
 - Post-quantum crypto optional (Kyber/Dilithium)
 
 #### Secure Deletion
@@ -534,7 +543,7 @@ See `docs/DATABASE_MANAGEMENT.md` for details.
 torsocks ./protosyte-rig --mode retrieve
 
 # Analyze intelligence
-export PROTOSYTE_PASSPHRASE="your_passphrase"
+export PROTOSYTE_PASSPHRASE="your_passphrase"  # REQUIRED in v3.0+ - will panic if not set
 ./protosyte-rig --mode analyze
 
 # View statistics

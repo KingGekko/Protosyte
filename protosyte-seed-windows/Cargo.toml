@@ -1,6 +1,6 @@
 [package]
 name = "protosyte-seed-windows"
-version = "0.1.0"
+version = "3.0.0"
 edition = "2021"
 
 [lib]
@@ -14,7 +14,7 @@ prost-types = "0.14"
 
 # Network exfiltration over Tor
 reqwest = { version = "0.12", features = ["rustls-tls", "socks", "multipart"] }
-tokio = { version = "1.40", features = ["full"] }
+tokio = { version = "1.48", features = ["full"] }
 
 # In-memory data processing
 aes-gcm = "0.10"

@@ -9,9 +9,13 @@ use std::sync::atomic::AtomicBool;
 #[cfg(target_os = "linux")]
 mod linux {
     use super::*;
+    #[cfg(target_os = "linux")]
     use nix::sys::socket::{socket, AddressFamily, SockType, SockFlag, SockProtocol};
+    #[cfg(target_os = "linux")]
     use nix::sys::socket::{bind, listen, accept, sendmsg, recvmsg, MsgFlags};
+    #[cfg(target_os = "linux")]
     use nix::sys::socket::{sockaddr_un, UnixAddr};
+    #[cfg(target_os = "linux")]
     use nix::unistd::{close, unlink};
     use std::os::unix::io::{RawFd, AsRawFd};
     use std::ffi::CString;
@@ -81,6 +85,7 @@ mod linux {
         size: usize,
     }
     
+    #[cfg(target_os = "linux")]
     impl MemfdRingBuffer {
         pub fn new(size: usize) -> Result<Self, String> {
             use nix::sys::memfd::{memfd_create, MemFdCreateFlag};
@@ -104,12 +109,12 @@ mod linux {
         
         pub fn as_slice(&self) -> Result<&mut [u8], String> {
             unsafe {
-                use std::ffi::c_void;
-                let addr = nix::sys::mman::mmap(
-                    None,
+                use nix::sys::mman;
+                let addr = mman::mmap(
+                    std::ptr::null_mut(),
                     self.size,
-                    nix::sys::mman::ProtFlags::PROT_READ | nix::sys::mman::ProtFlags::PROT_WRITE,
-                    nix::sys::mman::MapFlags::MAP_SHARED,
+                    mman::ProtFlags::PROT_READ | mman::ProtFlags::PROT_WRITE,
+                    mman::MapFlags::MAP_SHARED,
                     self.fd,
                     0,
                 ).map_err(|e| format!("Failed to mmap memfd: {}", e))?;
@@ -119,6 +124,7 @@ mod linux {
         }
     }
     
+    #[cfg(target_os = "linux")]
     impl Drop for MemfdRingBuffer {
         fn drop(&mut self) {
             let _ = nix::unistd::close(self.fd);

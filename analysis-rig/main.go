@@ -422,7 +422,7 @@ func generateFIP(analyzer *Analyzer) (string, string, int, error) {
 	}
 
 	fip := map[string]interface{}{
-		"version":      "2.1",
+		"version":      "3.0",
 		"generated_at": time.Now().Unix(),
 		"record_count": len(records),
 		"records":      records,

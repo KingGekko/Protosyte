@@ -3,18 +3,29 @@
 
 use std::ffi::CString;
 use std::fs;
+#[cfg(target_os = "linux")]
 use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio};
 use std::io::{self, Write};
 use log;
+#[cfg(target_os = "linux")]
 use nix::sys::ptrace;
+#[cfg(target_os = "linux")]
 use nix::sys::wait::{waitpid, WaitStatus};
+#[cfg(target_os = "linux")]
 use nix::unistd::{Pid, execv};
+#[cfg(target_os = "linux")]
 use nix::sys::mman::{mmap, MapFlags, ProtFlags};
-use libc::{c_void, c_char, dlopen, dlsym, RTLD_LAZY, RTLD_GLOBAL};
+#[cfg(target_os = "linux")]
+use libc::{c_void, c_char, dlopen, dlsym, RTLD_LAZY, RTLD_GLOBAL, MAP_FAILED, munmap};
+#[cfg(not(target_os = "linux"))]
+use std::ffi::c_void;
+#[cfg(not(target_os = "linux"))]
+use std::os::raw::c_char;
 
 pub struct InjectionManager;
 
+#[cfg(target_os = "linux")]
 impl InjectionManager {
     // Method 1: LD_PRELOAD Injection (Standard, most compatible)
     pub fn ld_preload_inject(lib_path: &str, target_command: &[&str]) -> Result<(), String> {
@@ -42,12 +53,13 @@ impl InjectionManager {
         // Wait for process to stop
         match waitpid(pid, None)
             .map_err(|e| format!("Failed to wait: {}", e))? {
-            WaitStatus::Stopped(_, _) => {},
+            #[cfg(target_os = "linux")]
+            nix::sys::wait::WaitStatus::Stopped(_, _) => {},
             _ => return Err("Unexpected wait status".to_string()),
         }
         
         // Save original registers
-        let regs = ptrace::getregs(pid)
+        let regs = nix::sys::ptrace::getregs(pid)
             .map_err(|e| format!("Failed to get registers: {}", e))?;
         
         // Allocate memory in target process
@@ -60,7 +72,7 @@ impl InjectionManager {
         Self::create_remote_thread_or_hijack(pid, remote_addr, &regs)?;
         
         // Detach
-        ptrace::detach(pid, None)
+        nix::sys::ptrace::detach(pid, None)
             .map_err(|e| format!("Failed to detach: {}", e))?;
         
         Ok(())
@@ -240,7 +252,8 @@ impl Filesystem for LibraryHookFS {{
     }
 
     // Method 8: GOT/PLT Hooking (Global Offset Table manipulation)
-    pub fn got_plt_hook(target_binary: &str, target_symbol: &str, hook_function: *const c_void) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    pub fn got_plt_hook(target_binary: &str, target_symbol: &str, hook_function: *const libc::c_void) -> Result<(), String> {
         // Read ELF binary
         let binary_data = fs::read(target_binary)
             .map_err(|e| format!("Failed to read binary: {}", e))?;
@@ -295,7 +308,7 @@ impl Filesystem for LibraryHookFS {{
         // Use syscall injection to call mmap
         let mmap_addr = 0x7f0000000000u64; // Typical mmap region
         
-        let regs = ptrace::getregs(pid)
+        let regs = nix::sys::ptrace::getregs(pid)
             .map_err(|e| format!("Failed to get regs: {}", e))?;
         
         let mut new_regs = regs;
@@ -312,11 +325,11 @@ impl Filesystem for LibraryHookFS {{
             new_regs.r9 = 0; // offset
         }
         
-        ptrace::setregs(pid, new_regs)
+        nix::sys::ptrace::setregs(pid, new_regs)
             .map_err(|e| format!("Failed to set regs: {}", e))?;
         
         // Execute syscall
-        ptrace::syscall(pid, None)
+        nix::sys::ptrace::syscall(pid, None)
             .map_err(|e| format!("Failed to syscall: {}", e))?;
         
         waitpid(pid, None)
@@ -343,7 +356,8 @@ impl Filesystem for LibraryHookFS {{
             let word_val = u64::from_le_bytes(word);
             
             // Write word at a time
-            ptrace::write(pid, (addr + offset) as *mut c_void, word_val as *mut c_void)
+            #[cfg(target_os = "linux")]
+            nix::sys::ptrace::write(pid, (addr + offset) as *mut libc::c_void, word_val as *mut libc::c_void)
                 .map_err(|e| format!("Failed to write word: {}", e))?;
             
             offset += 8;
@@ -353,7 +367,7 @@ impl Filesystem for LibraryHookFS {{
     }
 
     // Helper: Create remote thread or hijack existing
-    fn create_remote_thread_or_hijack(pid: Pid, entry_point: usize, original_regs: &ptrace::user_regs_struct) -> Result<(), String> {
+    fn create_remote_thread_or_hijack(pid: Pid, entry_point: usize, original_regs: &nix::sys::ptrace::user_regs_struct) -> Result<(), String> {
         let mut new_regs = *original_regs;
         
         // Set instruction pointer to our shellcode
@@ -367,7 +381,7 @@ impl Filesystem for LibraryHookFS {{
             new_regs.eip = entry_point as u32;
         }
         
-        ptrace::setregs(pid, new_regs)
+        nix::sys::ptrace::setregs(pid, new_regs)
             .map_err(|e| format!("Failed to set entry point: {}", e))?;
         
         Ok(())
@@ -652,7 +666,8 @@ impl Filesystem for LibraryHookFS {{
     }
 
     // Helper: Write GOT entry
-    fn write_got_entry(_binary: &str, _offset: usize, _hook_addr: *const c_void) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    fn write_got_entry(_binary: &str, _offset: usize, _hook_addr: *const libc::c_void) -> Result<(), String> {
         // Modify binary to write hook address at GOT offset
         Ok(())
     }
@@ -677,8 +692,9 @@ pub extern "C" fn la_version(version: u32) -> u32 {
     version
 }
 
+#[cfg(target_os = "linux")]
 #[no_mangle]
-pub extern "C" fn la_objopen(link_map: *mut c_void, cookie: *mut c_void, flags: u32) -> u32 {
+pub extern "C" fn la_objopen(link_map: *mut libc::c_void, cookie: *mut libc::c_void, flags: u32) -> u32 {
     // Called when object is opened - perfect time to inject
     unsafe {
         // Initialize our seed here
@@ -687,15 +703,16 @@ pub extern "C" fn la_objopen(link_map: *mut c_void, cookie: *mut c_void, flags: 
     0
 }
 
+#[cfg(target_os = "linux")]
 #[no_mangle]
 pub extern "C" fn la_symbind32(
-    sym: *const c_void,
+    sym: *const libc::c_void,
     ndx: u32,
-    refcook: *mut c_void,
-    defcook: *mut c_void,
+    refcook: *mut libc::c_void,
+    defcook: *mut libc::c_void,
     flags: *mut u32,
-    symname: *const c_char,
-) -> *mut c_void {
+    symname: *const libc::c_char,
+) -> *mut libc::c_void {
     // Symbol binding hook - can intercept function calls
     sym
 }
@@ -709,6 +726,6 @@ pub extern "C" fn la_symbind64(
     flags: *mut u32,
     symname: *const c_char,
 ) -> *mut c_void {
-    sym
+    sym as *mut c_void
 }
 

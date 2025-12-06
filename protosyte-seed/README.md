@@ -2,6 +2,8 @@
 
 Rust-based in-memory implant for passive data capture and exfiltration on Linux systems.
 
+**Version**: 3.0.0 - See [CHANGELOG.md](../CHANGELOG.md) for detailed changes.
+
 ## Quick Start
 
 ### Using Automation Scripts

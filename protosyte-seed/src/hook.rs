@@ -6,12 +6,26 @@ use regex::Regex;
 pub struct HookManager {
     filters: Vec<DataFilter>,
     active: Arc<AtomicBool>,
+    #[cfg(feature = "ai-filtering")]
+    ai_filter: Option<crate::ai_filtering::AIDataFilter>,
 }
 
 #[derive(Clone)]
 struct DataFilter {
     pattern: Regex,
     data_type: String,
+}
+
+// HookManager can be cloned for async tasks
+impl Clone for HookManager {
+    fn clone(&self) -> Self {
+        Self {
+            filters: self.filters.clone(),
+            active: Arc::clone(&self.active),
+            #[cfg(feature = "ai-filtering")]
+            ai_filter: self.ai_filter.clone(),
+        }
+    }
 }
 
 impl HookManager {
@@ -129,7 +143,7 @@ impl HookManager {
                 }
             }
             
-            tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+            tokio::time::sleep(crate::constants::POLL_INTERVAL_FAST).await;
         }
     }
     
@@ -171,7 +185,7 @@ impl HookManager {
                 }
             }
             
-            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            tokio::time::sleep(crate::constants::POLL_INTERVAL_NORMAL).await;
         }
     }
     

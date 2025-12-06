@@ -144,17 +144,18 @@ mod tests {
     #[test]
     fn test_metrics_thread_safety() {
         use std::thread;
+        use std::sync::Arc;
         
-        let metrics = Metrics::new();
+        let metrics = Arc::new(Metrics::new());
         let mut handles = vec![];
         
         // Spawn multiple threads to test thread safety
         for _ in 0..10 {
-            let metrics_clone = &metrics;
+            let metrics = Arc::clone(&metrics);
             let handle = thread::spawn(move || {
                 for _ in 0..100 {
-                    metrics_clone.increment_payloads_sent();
-                    metrics_clone.add_bytes_exfiltrated(100);
+                    metrics.increment_payloads_sent();
+                    metrics.add_bytes_exfiltrated(100);
                 }
             });
             handles.push(handle);

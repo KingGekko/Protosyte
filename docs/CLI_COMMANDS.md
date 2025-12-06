@@ -65,7 +65,7 @@ Decrypts retrieved payloads and stores intelligence data in SQLite database.
 
 ```bash
 # Basic usage
-export PROTOSYTE_PASSPHRASE="your_passphrase"
+export PROTOSYTE_PASSPHRASE="your_passphrase"  # REQUIRED in v3.0+ - will panic if not set
 ./analysis-rig/protosyte-rig --mode analyze
 
 # Using file descriptor for passphrase (more secure)
@@ -80,7 +80,7 @@ export PROTOSYTE_PASSPHRASE="your_passphrase"
 - `--mission <path>`: Path to mission.yaml
 
 **Requirements**:
-- `PROTOSYTE_PASSPHRASE` environment variable set
+- `PROTOSYTE_PASSPHRASE` environment variable set (**REQUIRED** in v3.0+ - application will panic if not set)
 - Payloads retrieved (run `retrieve` mode first)
 - Database write permissions
 
@@ -103,7 +103,7 @@ Shows summary statistics about collected intelligence.
 ./analysis-rig/protosyte-rig --mode stats --format json
 
 # With passphrase (if database is encrypted)
-export PROTOSYTE_PASSPHRASE="your_passphrase"
+export PROTOSYTE_PASSPHRASE="your_passphrase"  # REQUIRED in v3.0+ - will panic if not set
 ./analysis-rig/protosyte-rig --mode stats
 ```
 
@@ -150,7 +150,7 @@ Lists collected intelligence records with filtering options.
 ./analysis-rig/protosyte-rig --mode records --limit 200 --format json
 
 # With passphrase
-export PROTOSYTE_PASSPHRASE="your_passphrase"
+export PROTOSYTE_PASSPHRASE="your_passphrase"  # REQUIRED in v3.0+ - will panic if not set
 ./analysis-rig/protosyte-rig --mode records --limit 50
 ```
 
@@ -180,7 +180,7 @@ Lists all unique target hosts from which intelligence was collected.
 ./analysis-rig/protosyte-rig --mode hosts --format json
 
 # With passphrase
-export PROTOSYTE_PASSPHRASE="your_passphrase"
+export PROTOSYTE_PASSPHRASE="your_passphrase"  # REQUIRED in v3.0+ - will panic if not set
 ./analysis-rig/protosyte-rig --mode hosts
 ```
 
@@ -211,7 +211,7 @@ Generates a complete Forensic Intelligence Packet (FIP) for reporting.
 ./analysis-rig/protosyte-rig --mode fip > forensic_intel_packet.json
 
 # With passphrase
-export PROTOSYTE_PASSPHRASE="your_passphrase"
+export PROTOSYTE_PASSPHRASE="your_passphrase"  # REQUIRED in v3.0+ - will panic if not set
 ./analysis-rig/protosyte-rig --mode fip --format json > fip_$(date +%Y%m%d).json
 ```
 
@@ -717,7 +717,7 @@ nano .env  # Edit configuration
 ./scripts/vm-manage.sh enable-wan
 ssh user@192.168.56.10
 export PROTOSYTE_BOT_TOKEN="your_token"
-export PROTOSYTE_PASSPHRASE="your_passphrase"
+export PROTOSYTE_PASSPHRASE="your_passphrase"  # REQUIRED in v3.0+ - will panic if not set
 torsocks ./protosyte-rig --mode retrieve
 
 # 5. Disable WAN
@@ -800,11 +800,11 @@ All commands use these environment variables:
 ```bash
 # Temporary (current session)
 export PROTOSYTE_BOT_TOKEN="your_token"
-export PROTOSYTE_PASSPHRASE="your_passphrase"
+export PROTOSYTE_PASSPHRASE="your_passphrase"  # REQUIRED in v3.0+ - will panic if not set
 
 # Persistent (add to ~/.bashrc or ~/.zshrc)
 echo 'export PROTOSYTE_BOT_TOKEN="your_token"' >> ~/.bashrc
-echo 'export PROTOSYTE_PASSPHRASE="your_passphrase"' >> ~/.bashrc
+echo 'export PROTOSYTE_PASSPHRASE="your_passphrase"  # REQUIRED in v3.0+ - will panic if not set' >> ~/.bashrc
 source ~/.bashrc
 
 # From .env file (if using scripts)

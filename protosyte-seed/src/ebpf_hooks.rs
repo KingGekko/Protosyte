@@ -126,7 +126,7 @@ mod ebpf_impl {
                 self.adapt_buffer_size().await;
 
                 // Read from ring buffer (non-blocking)
-                ring_buffer.poll(Duration::from_millis(100)).await;
+                ring_buffer.poll(crate::constants::POLL_INTERVAL_NORMAL).await;
 
                 // Process available data
                 let mut processed = 0;
@@ -143,7 +143,7 @@ mod ebpf_impl {
                 // Note: This is approximated - aya-rs doesn't directly expose drop count
                 // We infer drops based on event rate changes
 
-                tokio::time::sleep(Duration::from_millis(10)).await;
+                tokio::time::sleep(crate::constants::POLL_INTERVAL_FAST / 5).await;
             }
         }
         

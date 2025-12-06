@@ -8,6 +8,7 @@ use std::ptr;
 use std::sync::atomic::{AtomicPtr, Ordering};
 use libc::{dlopen, dlsym, RTLD_NEXT, FILE, O_CREAT, O_RDWR, O_TRUNC, S_IRUSR, S_IWUSR, 
            mmap, MAP_SHARED, PROT_READ | PROT_WRITE, close, open, write as sys_write};
+#[cfg(target_os = "linux")]
 use nix::unistd::Fd;
 use std::os::unix::io::{RawFd, AsRawFd};
 
@@ -31,7 +32,9 @@ pub extern "C" fn init_hook_buffer() -> c_int {
     unsafe {
         // Use memfd_create for anonymous shared memory (zero filesystem footprint)
         // memfd files don't appear in /proc/filesystems and are automatically cleaned up
+        #[cfg(target_os = "linux")]
         use nix::sys::memfd::{memfd_create, MemFdCreateFlag};
+        #[cfg(target_os = "linux")]
         use nix::unistd::ftruncate;
         
         let name = CString::new("protosyte_ringbuf").unwrap();
@@ -53,7 +56,8 @@ pub extern "C" fn init_hook_buffer() -> c_int {
         };
         
         // Truncate to buffer size
-        if ftruncate(nix::unistd::Fd::from_raw_fd(fd), BUFFER_SIZE as i64).is_err() {
+        #[cfg(target_os = "linux")]
+        if nix::unistd::ftruncate(nix::unistd::Fd::from_raw_fd(fd), BUFFER_SIZE as i64).is_err() {
             close(fd);
             return -1;
         }
@@ -68,7 +72,8 @@ pub extern "C" fn init_hook_buffer() -> c_int {
             0,
         );
         
-        if addr == libc::MAP_FAILED {
+        #[cfg(target_os = "linux")]
+        if addr == libc::MAP_FAILED as *mut _ {
             close(fd);
             return -1;
         }

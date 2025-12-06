@@ -2,6 +2,8 @@
 
 macOS dynamic library-based in-memory implant for passive data capture and exfiltration.
 
+**Version**: 3.0.0 - See [CHANGELOG.md](../CHANGELOG.md) for detailed changes.
+
 ## Building
 
 ```bash

@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 pub struct RingBuffer {
-    buffer: Vec<u8>,
+    buffer: Arc<std::sync::Mutex<Vec<u8>>>,
     write_pos: Arc<AtomicUsize>,
     read_pos: Arc<AtomicUsize>,
     size: usize,
@@ -11,14 +11,14 @@ pub struct RingBuffer {
 impl RingBuffer {
     pub fn new(size: usize) -> Self {
         Self {
-            buffer: vec![0u8; size],
+            buffer: Arc::new(std::sync::Mutex::new(vec![0u8; size])),
             write_pos: Arc::new(AtomicUsize::new(0)),
             read_pos: Arc::new(AtomicUsize::new(0)),
             size,
         }
     }
     
-    pub fn write(&self, data: &[u8]) -> Result<(), ()> {
+    pub fn write(&self, data: &[u8]) -> Result<(), crate::error_handling::ProtosyteError> {
         // Lock-free ring buffer write
         let write_pos = self.write_pos.load(Ordering::Acquire);
         let read_pos = self.read_pos.load(Ordering::Acquire);
@@ -31,18 +31,21 @@ impl RingBuffer {
         };
         
         if data.len() > available {
-            return Err(()); // Not enough space
+            return Err(crate::error_handling::ProtosyteError::BufferError(
+                format!("Not enough space in buffer: need {}, available {}", data.len(), available)
+            ));
         }
         
         // Write data (simplified - doesn't handle wrap-around)
         let end = (write_pos + data.len()).min(self.size);
         let copy_len = end - write_pos;
-        self.buffer[write_pos..end].copy_from_slice(&data[..copy_len]);
+        let mut buf = self.buffer.lock().unwrap();
+        buf[write_pos..end].copy_from_slice(&data[..copy_len]);
         
         if data.len() > copy_len {
             // Handle wrap-around
             let remaining = data.len() - copy_len;
-            self.buffer[0..remaining].copy_from_slice(&data[copy_len..]);
+            buf[0..remaining].copy_from_slice(&data[copy_len..]);
             self.write_pos.store(remaining, Ordering::Release);
         } else {
             self.write_pos.store(end, Ordering::Release);
@@ -72,12 +75,13 @@ impl RingBuffer {
         
         // Read data (simplified - doesn't handle wrap-around)
         let end = (read_pos + read_len).min(self.size);
-        result.extend_from_slice(&self.buffer[read_pos..end]);
+        let buf = self.buffer.lock().unwrap();
+        result.extend_from_slice(&buf[read_pos..end]);
         
         if read_len > (end - read_pos) {
             // Handle wrap-around
             let remaining = read_len - (end - read_pos);
-            result.extend_from_slice(&self.buffer[0..remaining]);
+            result.extend_from_slice(&buf[0..remaining]);
             self.read_pos.store(remaining, Ordering::Release);
         } else {
             self.read_pos.store(end, Ordering::Release);
@@ -95,7 +99,8 @@ mod tests {
     fn test_ring_buffer_new() {
         let buffer = RingBuffer::new(1024);
         assert_eq!(buffer.size, 1024);
-        assert_eq!(buffer.buffer.len(), 1024);
+        let buf = buffer.buffer.lock().unwrap();
+        assert_eq!(buf.len(), 1024);
     }
     
     #[test]
@@ -152,7 +157,7 @@ mod tests {
         // Try to write more than buffer size
         let large_data = vec![0u8; 20];
         // Should handle gracefully (current implementation may fail)
-        let result = buffer.write(&large_data);
+        let _result = buffer.write(&large_data);
         // Result depends on implementation
     }
     

@@ -73,7 +73,7 @@ mod tests {
         let manager = hook::HookManager::new();
         
         // Test various data types
-        let test_cases = vec![
+        let test_cases: Vec<(&[u8], bool)> = vec![
             (b"-----BEGIN RSA PRIVATE KEY-----", true),
             (b"password=secret", true),
             (b"api_key=sk_live_1234567890", true),

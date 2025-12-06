@@ -3,7 +3,7 @@
 </div>
 
 # Protosyte Framework
-## Version 2.3 - "Adaptive Stealth"
+## Version 3.0 - "Quantum Resilience & Advanced Evasion"
 
 **⚠️ CRITICAL DISCLAIMER**: This framework is designed for **authorized penetration testing, security research, and red team exercises only**. Unauthorized use is illegal and unethical. Always obtain explicit written authorization before use.
 
@@ -162,9 +162,9 @@ cp mission.yaml.example mission.yaml
 # Edit with your parameters
 nano mission.yaml
 
-# Set environment variables
+# Set environment variables (REQUIRED - will panic if not set)
 export PROTOSYTE_BOT_TOKEN="your_bot_token"
-export PROTOSYTE_PASSPHRASE="your_secure_passphrase"
+export PROTOSYTE_PASSPHRASE="your_secure_passphrase"  # REQUIRED in v3.0+
 ```
 
 4. **Build All Components**:
@@ -439,10 +439,12 @@ export LE_PORTAL_KEY="your_key"
 - Memory-only operation (no file writes)
 - System call hooking (fwrite, send, SSL_write)
 - Pattern-based data filtering
-- AES-GCM encryption with host binding
-- LZ4 compression
-- Tor-based exfiltration
-- Evasion techniques
+- AES-GCM encryption with host binding (PBKDF2-HMAC-SHA256 key derivation, 100k iterations)
+- LZ4 compression (with adaptive compression support)
+- Multiple exfiltration channels (Tor, DNS, ICMP, WebSocket, QUIC, Domain Fronting)
+- Advanced evasion techniques (anti-debugging, indirect syscalls, polymorphic code)
+- Kernel-level hooking support (eBPF, kprobes, tracepoints)
+- Intelligence collection modules (screenshots, clipboard, database interception)
 
 **Detailed Documentation**: See `protosyte-seed/README.md`, `protosyte-seed-windows/README.md`, `protosyte-seed-macos/README.md`
 
@@ -535,11 +537,12 @@ export LE_PORTAL_KEY="your_key"
 - Advanced XProtect Bypass
 
 **Linux**:
-- eBPF-Based Evasion
+- eBPF-Based Evasion (kprobes, tracepoints)
 - Kernel Module Rootkit Techniques
 - SELinux/AppArmor Bypass
-- Proc Hiding
-- Network Evasion
+- Proc Hiding (eBPF-based process hiding)
+- Network Evasion (polymorphic protocols, traffic padding, decoy traffic)
+- PLT/GOT Hijacking for multiple binaries
 
 **Cross-Platform**:
 - Quantum-Resistant Obfuscation
@@ -638,6 +641,11 @@ export LE_PORTAL_KEY="your_key"
 - **`protosyte-adaptixc2/README.md`**: AdaptixC2 integration details
 - **`protosyte-ai/README.md`**: AI integration details
 
+### Migration and Version Information
+
+- **`CHANGELOG.md`**: Complete changelog with all version history
+- **`docs/VERSION_3_MIGRATION.md`**: Migration guide for upgrading from v2.x to v3.0
+
 
 ### External Resources
 
@@ -715,9 +723,13 @@ stealth:
 ### Environment Variables
 
 ```bash
-# Required
+# REQUIRED (Application will panic if not set - security requirement in v3.0+)
 export PROTOSYTE_BOT_TOKEN="your_bot_token"
-export PROTOSYTE_PASSPHRASE="your_secure_passphrase"
+export PROTOSYTE_PASSPHRASE="your_secure_passphrase"  # REQUIRED - no default for security
+
+# Note: PROTOSYTE_PASSPHRASE is now mandatory in version 3.0+ for enhanced security.
+# The framework uses PBKDF2-HMAC-SHA256 with 100,000 iterations for key derivation.
+# There is NO default passphrase - you MUST set this environment variable.
 
 # Optional (for AI integration)
 export OLLAMA_HOST="http://localhost:11434"
@@ -736,9 +748,11 @@ export LE_PORTAL_KEY="your_submission_key"
 
 - Verify hooks are correctly configured
 - Check filter patterns match target data
-- Ensure Tor proxy is accessible
+- Ensure Tor proxy is accessible (or alternative channel configured)
 - Verify Telegram bot token is correct
 - Check system call hooking is working
+- **Verify PROTOSYTE_PASSPHRASE is set** (required in v3.0+ - will panic if missing)
+- Check that appropriate exfiltration channels are configured (Tor, DNS, ICMP, etc.)
 
 ### Broadcast Engine Not Receiving Messages
 
@@ -763,7 +777,17 @@ export LE_PORTAL_KEY="your_submission_key"
 
 ## Version History
 
-**Version 2.1 - "Virtualized Observer"**:
+**Version 3.0 - "Quantum Resilience & Advanced Evasion"**:
+- Enhanced cryptographic security with PBKDF2-HMAC-SHA256 (100k iterations)
+- Multiple new exfiltration channels (DNS, ICMP, WebSocket, QUIC, Domain Fronting)
+- Advanced evasion techniques (anti-debugging, indirect syscalls, polymorphic code)
+- Kernel-level hooking support (kprobes, tracepoints, eBPF)
+- Performance optimizations (adaptive compression, batch processing)
+- Intelligence collection modules (screenshots, keylogger, clipboard monitoring)
+- Thread-safe architecture improvements
+- **Breaking**: PROTOSYTE_PASSPHRASE now required (security requirement)
+
+**Version 2.3 - "Adaptive Stealth"**:
 - Evasion techniques
 - Multi-platform support (Linux, Windows, macOS)
 - AI integration for initial access
@@ -771,6 +795,10 @@ export LE_PORTAL_KEY="your_submission_key"
 - Enhanced stealth capabilities
 - CVE research and lookup
 - GitHub download approval system
+
+**Version 2.1 - "Virtualized Observer"**:
+- Initial multi-platform release
+- VM-based analysis architecture
 
 ---
 
@@ -789,6 +817,8 @@ For detailed information:
 
 ---
 
-**Last Updated**: 2025-12-03  
+**Last Updated**: 2025-12-06  
+**Current Version**: 3.0.0  
+**Migration Guide**: See [docs/VERSION_3_MIGRATION.md](docs/VERSION_3_MIGRATION.md) for upgrading from v2.x  
 **Purpose**: Authorized Security Research & Penetration Testing  
 **Classification**: Research Tool - Requires Explicit Authorization
