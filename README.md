@@ -3,7 +3,7 @@
 </div>
 
 # Protosyte Framework
-## Version 3.0 - "Quantum Resilience & Advanced Evasion"
+## Version 3.0 - "Ghost In No Shell"
 
 **⚠️ CRITICAL DISCLAIMER**: This framework is designed for **authorized penetration testing, security research, and red team exercises only**. Unauthorized use is illegal and unethical. Always obtain explicit written authorization before use.
 
