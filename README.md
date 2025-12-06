@@ -777,7 +777,7 @@ export LE_PORTAL_KEY="your_submission_key"
 
 ## Version History
 
-**Version 3.0 - "Quantum Resilience & Advanced Evasion"**:
+**Version 3.0 - "Ghost in the Signal"**:
 - Enhanced cryptographic security with PBKDF2-HMAC-SHA256 (100k iterations)
 - Multiple new exfiltration channels (DNS, ICMP, WebSocket, QUIC, Domain Fronting)
 - Advanced evasion techniques (anti-debugging, indirect syscalls, polymorphic code)
@@ -787,7 +787,7 @@ export LE_PORTAL_KEY="your_submission_key"
 - Thread-safe architecture improvements
 - **Breaking**: PROTOSYTE_PASSPHRASE now required (security requirement)
 
-**Version 2.3 - "Adaptive Stealth"**:
+**Version 2.0 - "Adaptive Operator"**:
 - Evasion techniques
 - Multi-platform support (Linux, Windows, macOS)
 - AI integration for initial access
@@ -796,7 +796,7 @@ export LE_PORTAL_KEY="your_submission_key"
 - CVE research and lookup
 - GitHub download approval system
 
-**Version 2.1 - "Virtualized Observer"**:
+**Version 1.0 - "Silent Observer"**:
 - Initial multi-platform release
 - VM-based analysis architecture
 
